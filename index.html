@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>多钱包授权工具</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont;
+      padding: 20px;
+      max-width: 480px;
+      margin: auto;
+    }
+    input { width: 100%; margin: 6px 0; padding: 8px; }
+    button { padding: 12px; width: 100%; margin-top: 10px; cursor: pointer; }
+    .danger { background: #ff4d4f; color: #fff; border: none; }
+    .tip { color: orange; font-size: 13px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <h2>🔐 多钱包授权 / 撤销</h2>
+
+  <div class="tip" id="envTip"></div>
+
+  <button onclick="connectWC()">📱 WalletConnect</button>
+  <button onclick="connectInjected()">💻 浏览器钱包</button>
+
+  <input id="token" placeholder="Token 合约地址" />
+  <input id="spender" placeholder="Spender 合约地址" />
+  <input id="amount" placeholder="授权数量（代币）" />
+  <input id="decimals" placeholder="代币精度（默认 18）" value="18" />
+
+  <button onclick="approve()">✅ 授权</button>
+  <button class="danger" onclick="revoke()">❌ 撤销授权</button>
+
+  <pre id="log" style="margin-top:15px;white-space:pre-wrap;"></pre>
+
+</div>
+
+<script>
+let provider, signer;
+
+const abi = [
+  "function approve(address spender, uint256 amount) external returns (bool)"
+];
+
+/* ===== OKX 内置浏览器检测 ===== */
+function checkOKX() {
+  const ua = navigator.userAgent;
+  const isOKX = ua.includes("OKXWallet") || ua.includes("okhttp");
+
+  if (isOKX) {
+    const url = location.href;
+    navigator.clipboard.writeText(url);
+
+    document.getElementById("app").innerHTML = `
+      <h2>⚠️ 请在系统浏览器中打开</h2>
+      <p>检测到您正在使用 OKX 钱包内置浏览器。</p>
+      <p>当前链接已自动复制，请：</p>
+      <ol>
+        <li>打开手机 <b>Safari / Chrome</b></li>
+        <li>粘贴并访问</li>
+      </ol>
+      <button onclick="location.reload()">我已复制</button>
+    `;
+    return true;
+  }
+  return false;
+}
+
+/* ===== 钱包连接 ===== */
+function connectInjected() {
+  if (!window.ethereum) return alert("未检测到钱包");
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  window.ethereum.request({ method: "eth_requestAccounts" })
+    .then(() => {
+      signer = provider.getSigner();
+      log("✅ 浏览器钱包已连接");
+    });
+}
+
+function connectWC() {
+  const wcProvider = new WalletConnectProvider.default({
+    rpc: {
+      1: "https://eth-mainnet.g.alchemy.com/v2/demo",
+      56: "https://bsc-dataseed.binance.org/"
+    },
+    chainId: 56,
+    qrcode: true,
+    projectId: "77178381f2226c9628ad5faf8ba32c10"
+  });
+
+  wcProvider.enable().then(() => {
+    provider = new ethers.providers.Web3Provider(wcProvider);
+    signer = provider.getSigner();
+    log("✅ WalletConnect 已连接");
+  });
+}
+
+/* ===== 授权逻辑 ===== */
+async function approve() {
+  const contract = contractInstance();
+  const value = ethers.utils.parseUnits(get("amount"), get("decimals"));
+  sendTx(contract.approve(get("spender"), value), "授权");
+}
+
+async function revoke() {
+  const contract = contractInstance();
+  const zero = ethers.utils.parseUnits("0", get("decimals"));
+  sendTx(contract.approve(get("spender"), zero), "撤销授权");
+}
+
+function contractInstance() {
+  return new ethers.Contract(get("token"), abi, signer);
+}
+
+async function sendTx(txPromise, action) {
+  try {
+    const tx = await txPromise;
+    log(action + " 已发送\n" + tx.hash);
+    await tx.wait();
+    log("✅ " + action + " 成功");
+  } catch (e) {
+    log("❌ " + e.message);
+  }
+}
+
+function get(id) { return document.getElementById(id).value; }
+
+function log(msg) {
+  document.getElementById("log").innerText = msg;
+}
+
+/* ===== 初始化 ===== */
+window.onload = () => {
+  if (checkOKX()) return;
+};
+</script>
+
+</body>
+</html>
