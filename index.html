@@ -1,0 +1,2903 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Direct</title>
+  <meta name="application-name" content="Direct" />
+  <meta property="og:site_name" content="Direct" />
+  <script>
+    (() => {
+      document.title = "Direct";
+      document.querySelector('meta[name="application-name"]')?.setAttribute("content", "Direct");
+      document.querySelector('meta[property="og:site_name"]')?.setAttribute("content", "Direct");
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js" onerror="window.ethersLoadFailed = true"></script>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --surface-2: #eef3f7;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8e0e8;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --green: #168653;
+      --amber: #b86e12;
+      --coral: #d95e40;
+      --danger: #b42318;
+      --shadow: 0 16px 38px rgba(23, 32, 51, 0.08);
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(246, 248, 251, 0.9)),
+        repeating-linear-gradient(90deg, rgba(37, 99, 235, 0.05) 0, rgba(37, 99, 235, 0.05) 1px, transparent 1px, transparent 72px),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      min-height: 40px;
+      padding: 0 14px;
+      background: var(--surface-2);
+      color: var(--ink);
+      font-weight: 650;
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(23, 32, 51, 0.1);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .primary:hover {
+      background: var(--blue-dark);
+    }
+
+    .success {
+      background: var(--green);
+      color: white;
+    }
+
+    .warn {
+      background: #fff2d6;
+      color: #7a4700;
+    }
+
+    .danger {
+      background: #fee4e2;
+      color: var(--danger);
+    }
+
+    .ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: white;
+      color: var(--ink);
+      min-height: 42px;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 150px;
+      line-height: 1.45;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: rgba(37, 99, 235, 0.7);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      padding: 18px clamp(16px, 3vw, 32px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #2563eb, #168653 56%, #d95e40);
+      color: white;
+      font-weight: 850;
+      letter-spacing: 0;
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 2.2vw, 31px);
+      letter-spacing: 0;
+      line-height: 1.05;
+    }
+
+    .brand-meta {
+      margin-top: 5px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 26px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 10px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      max-width: 100%;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      flex: 0 0 auto;
+    }
+
+    .dot.ok {
+      background: var(--green);
+    }
+
+    .dot.bad {
+      background: var(--danger);
+    }
+
+    .wallet-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .workspace {
+      width: min(1500px, 100%);
+      margin: 0 auto;
+      padding: clamp(16px, 3vw, 28px);
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: linear-gradient(180deg, #fff, #f9fbfd);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    label {
+      color: #344054;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .row {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+    }
+
+    .row > * {
+      min-width: 0;
+    }
+
+    .row button {
+      flex: 0 0 auto;
+    }
+
+    .rpc-preset {
+      flex: 0 0 160px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 126px minmax(0, 1fr);
+      gap: 1px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--line);
+    }
+
+    .detail-grid div {
+      background: white;
+      padding: 9px 10px;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }
+
+    .detail-grid .key {
+      color: #475467;
+      font-weight: 700;
+      background: #f7f9fb;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--line);
+      background: #f7f9fb;
+    }
+
+    .tab {
+      border-radius: 0;
+      background: transparent;
+      border-right: 1px solid var(--line);
+      min-height: 46px;
+      color: var(--muted);
+    }
+
+    .tab.active {
+      color: var(--ink);
+      background: #fff;
+      box-shadow: inset 0 -3px 0 var(--blue);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .function-list {
+      display: grid;
+      gap: 12px;
+      padding-bottom: min(65vh, 520px);
+    }
+
+    .function-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .function-item.original-call {
+      border-color: rgba(217, 94, 64, 0.78);
+      box-shadow: 0 0 0 3px rgba(217, 94, 64, 0.12);
+    }
+
+    .function-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      background: #fbfcfe;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .function-name {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+      min-width: 0;
+    }
+
+    .function-kind {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--green);
+      background: #e8f6ef;
+      border-radius: 999px;
+      padding: 4px 8px;
+      flex: 0 0 auto;
+    }
+
+    .function-kind.write {
+      color: #7a4700;
+      background: #fff2d6;
+    }
+
+    .function-kind.origin {
+      color: white;
+      background: var(--coral);
+    }
+
+    .function-body {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .params {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+    }
+
+    .param-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #475467;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .param-label span:last-child {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      overflow-wrap: anywhere;
+      text-align: right;
+    }
+
+    .result {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #101828;
+      color: #e4e7ec;
+      padding: 11px;
+      min-height: 46px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status-line {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--blue);
+      background: #fff;
+      border-radius: 8px;
+      padding: 11px 12px;
+      color: #344054;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .status-line.warn {
+      border-left-color: var(--amber);
+      background: #fffaf0;
+    }
+
+    .status-line.good {
+      border-left-color: var(--green);
+      background: #f0fdf4;
+    }
+
+    .status-line.bad {
+      border-left-color: var(--danger);
+      background: #fff5f4;
+    }
+
+    .empty {
+      border: 1px dashed #b8c4d0;
+      border-radius: 8px;
+      padding: 18px;
+      color: var(--muted);
+      background: #fbfcfe;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .hint-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .hint-item {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfcfe;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    .hint-item strong {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 1020px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .wallet-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .row,
+      .split {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-grid .key {
+        padding-bottom: 3px;
+      }
+
+      .tabs {
+        overflow-x: auto;
+      }
+
+      .tab {
+        flex: 1 0 auto;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" id="appMark" aria-hidden="true">P</div>
+        <div>
+          <h1 id="appTitle">Polygon</h1>
+          <div class="brand-meta">
+            <span class="chip"><span class="dot" id="rpcDot"></span><span id="rpcState">RPC 待连接</span></span>
+            <span class="chip"><span class="dot" id="walletDot"></span><span id="walletState">钱包未连接</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="wallet-actions">
+        <select id="walletSelect" aria-label="钱包选择">
+          <option value="">检测钱包...</option>
+        </select>
+        <button class="ghost" id="networkModeBtn">切换网络：当前 Polygon</button>
+        <button class="ghost" id="resetPageBtn">清除</button>
+        <button class="ghost" id="disconnectWalletBtn" disabled>断开钱包</button>
+        <button class="primary" id="connectWalletBtn">连接钱包</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <div class="stack">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>交易哈希</h2>
+            <a id="scanTxLink" href="#" target="_blank" rel="noopener" hidden>Polygonscan</a>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="txHash">Hash</label>
+              <div class="row">
+                <input id="txHash" class="mono" spellcheck="false" autocomplete="off" placeholder="0x..." />
+                <button class="primary" id="loadTxBtn">解析</button>
+              </div>
+            </div>
+            <div class="field">
+              <label id="rpcLabel" for="rpcUrl">Polygon RPC</label>
+              <div class="row">
+                <select id="rpcPreset" class="rpc-preset" aria-label="RPC 预设">
+                  <option value="https://polygon-bor-rpc.publicnode.com">PublicNode</option>
+                  <option value="https://polygon.drpc.org">dRPC</option>
+                  <option value="https://1rpc.io/matic">1RPC</option>
+                  <option value="custom">自定义</option>
+                </select>
+                <input id="rpcUrl" spellcheck="false" value="https://polygon-bor-rpc.publicnode.com" />
+              </div>
+            </div>
+            <div class="detail-grid" id="txDetails">
+              <div class="key">状态</div><div>等待交易哈希</div>
+              <div class="key">交互地址</div><div>-</div>
+              <div class="key">From</div><div>-</div>
+              <div class="key">Value</div><div>-</div>
+              <div class="key">Block</div><div>-</div>
+              <div class="key">Selector</div><div>-</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>交互地址</h2>
+            <button class="ghost" id="copyTargetBtn">复制</button>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="targetAddress">Address</label>
+              <input id="targetAddress" class="mono" spellcheck="false" autocomplete="off" placeholder="0x..." />
+            </div>
+            <div class="row">
+              <button id="applyTargetBtn">应用地址</button>
+              <button class="ghost" id="checkCodeBtn">检查合约</button>
+            </div>
+            <div class="status-line" id="targetStatus">等待地址</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>ABI</h2>
+            <span class="chip" id="abiCount">0 functions</span>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label id="scanApiKeyLabel" for="scanApiKey">Polygonscan / Etherscan API Key</label>
+              <input id="scanApiKey" spellcheck="false" autocomplete="off" placeholder="可选" />
+            </div>
+            <div class="row">
+              <button class="primary" id="loadVerifiedAbiBtn">载入已验证 ABI</button>
+              <button class="ghost" id="clearAbiBtn">清空 ABI</button>
+            </div>
+            <div class="field">
+              <label for="abiInput">ABI JSON</label>
+              <textarea id="abiInput" spellcheck="false" placeholder='[{"type":"function","name":"balanceOf","inputs":[...]}]'></textarea>
+            </div>
+            <button class="success" id="useAbiBtn">应用 ABI</button>
+            <div class="status-line" id="abiStatus">等待 ABI</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>建议操作</h2>
+            <span class="chip" id="advisorState">待识别</span>
+          </div>
+          <div class="panel-body">
+            <div class="row">
+              <button class="primary" id="smartDetectBtn">智能识别调用</button>
+              <button class="ghost" id="lookupSelectorBtn">查询函数签名</button>
+               <button class="ghost" id="diagnoseSwapBtn">检查余额/授权</button>
+            </div>
+            <div class="split">
+              <div class="field">
+                <label for="simpleAmount">输入数量</label>
+                <input id="simpleAmount" inputmode="decimal" placeholder="例如 8.88" />
+              </div>
+              <div class="field">
+                <label for="simpleSlippage">滑点保护</label>
+                <select id="simpleSlippage">
+                  <option value="500">5% 常规</option>
+                  <option value="1000" selected>10% 带税币</option>
+                  <option value="2000">20% 更容易成交</option>
+                  <option value="5000">50% 仅测试估算</option>
+                  <option value="custom">自定义</option>
+                </select>
+                <input id="customSlippage" inputmode="decimal" placeholder="自定义滑点%，例如 12.5" hidden />
+              </div>
+            </div>
+            <div class="row">
+              <button class="success" id="buildSimpleSwapBtn">只按这个数量自动配置</button>
+              <button class="ghost" id="estimateSimpleSwapBtn">自动配置并估算</button>
+            </div>
+            <div class="result" id="simpleSwapResult">-</div>
+            <div class="status-line" id="advisorStatus">等待交易哈希</div>
+            <div class="hint-list" id="signatureHints"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>授权管理</h2>
+            <span class="chip" id="approvalState">待检查</span>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="approvalToken">Token 地址</label>
+              <input id="approvalToken" class="mono" spellcheck="false" autocomplete="off" placeholder="0x..." />
+            </div>
+            <div class="field">
+              <label for="approvalSpender">授权对象</label>
+              <input id="approvalSpender" class="mono" spellcheck="false" autocomplete="off" placeholder="0x..." />
+            </div>
+            <div class="split">
+              <div class="field">
+                <label for="approvalAmount">授权数量</label>
+                <input id="approvalAmount" inputmode="decimal" placeholder="例如 1.5" />
+              </div>
+              <div class="field">
+                <label for="approvalDecimals">精度</label>
+                <input id="approvalDecimals" inputmode="numeric" placeholder="自动" />
+              </div>
+            </div>
+            <div class="row">
+              <button class="ghost" id="fillApprovalFromSwapBtn">填入当前 Swap</button>
+              <button class="ghost" id="checkApprovalBtn">检查授权</button>
+              <button class="primary" id="approveTokenBtn">授权</button>
+              <button class="danger" id="revokeTokenBtn">取消授权</button>
+            </div>
+            <div class="result" id="approvalResult">-</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="readPanel" role="tab">读取函数</button>
+            <button class="tab" data-tab="writePanel" role="tab">写入函数</button>
+            <button class="tab" data-tab="rawPanel" role="tab">Raw calldata</button>
+          </div>
+          <div class="tab-panel active" id="readPanel">
+            <div class="panel-body">
+              <div class="function-list" id="readFunctions">
+                <div class="empty">等待 ABI</div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-panel" id="writePanel">
+            <div class="panel-body">
+              <div class="function-list" id="writeFunctions">
+                <div class="empty">等待 ABI</div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-panel" id="rawPanel">
+            <div class="panel-body">
+              <div class="split">
+                <div class="field">
+                  <label id="nativeValueLabel" for="rawValue">MATIC</label>
+                  <input id="rawValue" inputmode="decimal" placeholder="0" />
+                </div>
+                <div class="field">
+                  <label for="rawGas">Gas limit</label>
+                  <input id="rawGas" inputmode="numeric" placeholder="自动" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="rawData">Calldata</label>
+                <textarea id="rawData" spellcheck="false" placeholder="0x"></textarea>
+              </div>
+              <div class="row">
+                <button class="ghost" id="estimateRawBtn">估算</button>
+                <button class="danger" id="sendRawBtn">发送</button>
+              </div>
+              <div class="result" id="rawResult">-</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>交易解码</h2>
+            <span class="chip" id="decodeState">未解码</span>
+          </div>
+          <div class="panel-body">
+            <div class="result" id="decodeResult">-</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>状态</h2>
+          </div>
+          <div class="panel-body">
+            <div class="status-line" id="mainStatus">准备就绪</div>
+            <div class="result" id="lastResult">-</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const els = {
+      appMark: document.getElementById("appMark"),
+      appTitle: document.getElementById("appTitle"),
+      txHash: document.getElementById("txHash"),
+      networkModeBtn: document.getElementById("networkModeBtn"),
+      rpcLabel: document.getElementById("rpcLabel"),
+      rpcPreset: document.getElementById("rpcPreset"),
+      rpcUrl: document.getElementById("rpcUrl"),
+      loadTxBtn: document.getElementById("loadTxBtn"),
+      scanTxLink: document.getElementById("scanTxLink"),
+      txDetails: document.getElementById("txDetails"),
+      targetAddress: document.getElementById("targetAddress"),
+      applyTargetBtn: document.getElementById("applyTargetBtn"),
+      checkCodeBtn: document.getElementById("checkCodeBtn"),
+      copyTargetBtn: document.getElementById("copyTargetBtn"),
+      targetStatus: document.getElementById("targetStatus"),
+      scanApiKey: document.getElementById("scanApiKey"),
+      scanApiKeyLabel: document.getElementById("scanApiKeyLabel"),
+      loadVerifiedAbiBtn: document.getElementById("loadVerifiedAbiBtn"),
+      clearAbiBtn: document.getElementById("clearAbiBtn"),
+      abiInput: document.getElementById("abiInput"),
+      useAbiBtn: document.getElementById("useAbiBtn"),
+      abiStatus: document.getElementById("abiStatus"),
+      abiCount: document.getElementById("abiCount"),
+      readFunctions: document.getElementById("readFunctions"),
+      writeFunctions: document.getElementById("writeFunctions"),
+      nativeValueLabel: document.getElementById("nativeValueLabel"),
+      rawValue: document.getElementById("rawValue"),
+      rawGas: document.getElementById("rawGas"),
+      rawData: document.getElementById("rawData"),
+      rawResult: document.getElementById("rawResult"),
+      estimateRawBtn: document.getElementById("estimateRawBtn"),
+      sendRawBtn: document.getElementById("sendRawBtn"),
+      smartDetectBtn: document.getElementById("smartDetectBtn"),
+      lookupSelectorBtn: document.getElementById("lookupSelectorBtn"),
+      diagnoseSwapBtn: document.getElementById("diagnoseSwapBtn"),
+      simpleAmount: document.getElementById("simpleAmount"),
+      simpleSlippage: document.getElementById("simpleSlippage"),
+      customSlippage: document.getElementById("customSlippage"),
+      buildSimpleSwapBtn: document.getElementById("buildSimpleSwapBtn"),
+      estimateSimpleSwapBtn: document.getElementById("estimateSimpleSwapBtn"),
+      simpleSwapResult: document.getElementById("simpleSwapResult"),
+      advisorState: document.getElementById("advisorState"),
+      advisorStatus: document.getElementById("advisorStatus"),
+      signatureHints: document.getElementById("signatureHints"),
+      approvalState: document.getElementById("approvalState"),
+      approvalToken: document.getElementById("approvalToken"),
+      approvalSpender: document.getElementById("approvalSpender"),
+      approvalAmount: document.getElementById("approvalAmount"),
+      approvalDecimals: document.getElementById("approvalDecimals"),
+      fillApprovalFromSwapBtn: document.getElementById("fillApprovalFromSwapBtn"),
+      checkApprovalBtn: document.getElementById("checkApprovalBtn"),
+      approveTokenBtn: document.getElementById("approveTokenBtn"),
+      revokeTokenBtn: document.getElementById("revokeTokenBtn"),
+      approvalResult: document.getElementById("approvalResult"),
+      decodeResult: document.getElementById("decodeResult"),
+      decodeState: document.getElementById("decodeState"),
+      mainStatus: document.getElementById("mainStatus"),
+      lastResult: document.getElementById("lastResult"),
+      walletSelect: document.getElementById("walletSelect"),
+      connectWalletBtn: document.getElementById("connectWalletBtn"),
+      disconnectWalletBtn: document.getElementById("disconnectWalletBtn"),
+      resetPageBtn: document.getElementById("resetPageBtn"),
+      rpcDot: document.getElementById("rpcDot"),
+      rpcState: document.getElementById("rpcState"),
+      walletDot: document.getElementById("walletDot"),
+      walletState: document.getElementById("walletState")
+    };
+
+    const state = {
+      rpcProvider: null,
+      tx: null,
+      receipt: null,
+      target: "",
+      networkKey: "polygon",
+      abi: null,
+      abiSource: "",
+      abiIsRouterMinimal: false,
+      iface: null,
+      fragments: [],
+      account: "",
+      chainId: "",
+      decodedSignature: "",
+      decodedArgs: null,
+      swapDiagnosis: null,
+      walletProvider: null,
+      wallets: [],
+      walletManuallySelected: false,
+      functionRenderCache: new Map()
+    };
+
+    const DAPP_TITLE = "Direct";
+    const DEFAULT_TX_HASH = "";
+    const DEFAULT_NETWORK_KEY = "polygon";
+    const NETWORKS = {
+      polygon: {
+        key: "polygon",
+        name: "Polygon",
+        title: DAPP_TITLE,
+        mark: "P",
+        chainId: "0x89",
+        chainIdDecimal: 137,
+        chainName: "Polygon Mainnet",
+        nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+        defaultRpc: "https://polygon-bor-rpc.publicnode.com",
+        rpcPresets: [
+          { label: "PublicNode", value: "https://polygon-bor-rpc.publicnode.com" },
+          { label: "dRPC", value: "https://polygon.drpc.org" },
+          { label: "1RPC", value: "https://1rpc.io/matic" }
+        ],
+        deprecatedRpcs: ["https://polygon-rpc.com"],
+        explorerName: "Polygonscan",
+        explorerBase: "https://polygonscan.com",
+        txPath: "/tx/",
+        apiLabel: "Polygonscan / Etherscan API Key",
+        sourcifyChainId: 137,
+        etherscanChainId: 137,
+        scanApiUrl: "https://api.polygonscan.com/api"
+      },
+      anubis: {
+        key: "anubis",
+        name: "Anubis",
+        title: DAPP_TITLE,
+        mark: "A",
+        chainId: "0x1a3a",
+        chainIdDecimal: 6714,
+        chainName: "Anubis Chain",
+        nativeCurrency: { name: "gasDAI", symbol: "gasDAI", decimals: 18 },
+        defaultRpc: "https://rpc2.anubispace.org/",
+        rpcPresets: [
+          { label: "Anubis RPC 2", value: "https://rpc2.anubispace.org/" },
+          { label: "Anubis RPC 1", value: "https://rpc.anubispace.org/" }
+        ],
+        deprecatedRpcs: [],
+        explorerName: "Anubis Explorer",
+        explorerBase: "https://browser.anubispace.org",
+        txPath: "/tx/",
+        apiLabel: "Anubis ABI API Key（可选）",
+        sourcifyChainId: 6714,
+        etherscanChainId: null,
+        scanApiUrl: ""
+      }
+    };
+    const DEFAULT_RPC = NETWORKS[DEFAULT_NETWORK_KEY].defaultRpc;
+    const DEPRECATED_RPCS = new Set(NETWORKS.polygon.deprecatedRpcs);
+    const SIMPLE_DEADLINE_SECONDS = 20 * 60;
+    const ERC20_ABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function allowance(address,address) view returns (uint256)",
+      "function approve(address,uint256) returns (bool)",
+      "function decimals() view returns (uint8)",
+      "function symbol() view returns (string)",
+      "function name() view returns (string)"
+    ];
+    const ROUTER_ABI = [
+      "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256)",
+      "function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint256,uint256,address[],address,uint256)",
+      "function swapExactTokensForETH(uint256,uint256,address[],address,uint256)",
+      "function swapExactTokensForETHSupportingFeeOnTransferTokens(uint256,uint256,address[],address,uint256)",
+      "function swapTokensForExactTokens(uint256,uint256,address[],address,uint256)",
+      "function swapTokensForExactETH(uint256,uint256,address[],address,uint256)",
+      "function swapExactETHForTokens(uint256,address[],address,uint256)",
+      "function swapExactETHForTokensSupportingFeeOnTransferTokens(uint256,address[],address,uint256)",
+      "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 deadline,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256 amountOut)",
+      "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256 amountOut)",
+      "function exactInput((bytes path,address recipient,uint256 deadline,uint256 amountIn,uint256 amountOutMinimum)) payable returns (uint256 amountOut)",
+      "function exactInput((bytes path,address recipient,uint256 amountIn,uint256 amountOutMinimum)) payable returns (uint256 amountOut)",
+      "function getAmountsOut(uint256,address[]) view returns (uint256[])"
+    ];
+    const AGGREGATOR_HINTS = [
+      { keys: ["okx", "okex"], name: "OKX DEX 聚合器" },
+      { keys: ["tokenpocket", "tp wallet", "tp"], name: "TokenPocket 聚合器" },
+      { keys: ["binance", "bnb"], name: "Binance Web3 聚合器" },
+      { keys: ["bitget", "bitkeep"], name: "Bitget 聚合器" },
+      { keys: ["1inch", "oneinch"], name: "1inch 聚合器" },
+      { keys: ["paraswap"], name: "ParaSwap 聚合器" },
+      { keys: ["kyber", "kyberswap"], name: "KyberSwap 聚合器" },
+      { keys: ["odos"], name: "Odos 聚合器" },
+      { keys: ["openocean"], name: "OpenOcean 聚合器" },
+      { keys: ["0x"], name: "0x 聚合器" }
+    ];
+    const BOUND_WALLETS = new WeakSet();
+
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[char]);
+
+    function setStatus(element, message, tone = "") {
+      element.textContent = message;
+      element.className = `status-line ${tone}`.trim();
+    }
+
+    function setMain(message, tone = "") {
+      setStatus(els.mainStatus, message, tone);
+    }
+
+    function setLast(value) {
+      els.lastResult.textContent = stringifyValue(value);
+    }
+
+    function setAdvisor(message, tone = "", stateText = "") {
+      setStatus(els.advisorStatus, message, tone);
+      if (stateText) els.advisorState.textContent = stateText;
+    }
+
+    function currentNetwork() {
+      return NETWORKS[state.networkKey] || NETWORKS[DEFAULT_NETWORK_KEY];
+    }
+
+    function requestedNetworkKey() {
+      const params = new URLSearchParams(window.location.search);
+      const key = (params.get("chain") || params.get("network") || "").trim().toLowerCase();
+      if (NETWORKS[key]) return key;
+      return DEFAULT_NETWORK_KEY;
+    }
+
+    function networkRoute(key) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("chain", key);
+      const query = params.toString();
+      const path = window.location.pathname.replace(/[^/]*$/, "polygon-direct-interface2.html");
+      return `${path}${query ? `?${query}` : ""}${window.location.hash}`;
+    }
+
+    function syncNetworkQuery() {
+      window.history.replaceState(null, "", networkRoute(state.networkKey));
+    }
+
+    function syncDappIdentity() {
+      document.title = DAPP_TITLE;
+      document.querySelector('meta[name="application-name"]')?.setAttribute("content", DAPP_TITLE);
+      document.querySelector('meta[property="og:site_name"]')?.setAttribute("content", DAPP_TITLE);
+      if (els.appTitle) els.appTitle.textContent = currentNetwork().name;
+    }
+
+    function explorerTxUrl(hash) {
+      const network = currentNetwork();
+      return `${network.explorerBase}${network.txPath}${hash}`;
+    }
+
+    function renderRpcPresets() {
+      const network = currentNetwork();
+      els.rpcPreset.innerHTML = network.rpcPresets.map((item) => (
+        `<option value="${esc(item.value)}">${esc(item.label)}</option>`
+      )).join("") + `<option value="custom">自定义</option>`;
+    }
+
+    function renderNetworkUi({ resetRpc = false } = {}) {
+      const network = currentNetwork();
+      syncDappIdentity();
+      els.appMark.textContent = network.mark;
+      els.networkModeBtn.textContent = `切换网络：当前 ${network.name}`;
+      els.rpcLabel.textContent = `${network.name} RPC`;
+      els.scanTxLink.textContent = network.explorerName;
+      els.scanApiKeyLabel.textContent = network.apiLabel;
+      els.nativeValueLabel.textContent = network.nativeCurrency.symbol;
+      renderRpcPresets();
+      if (resetRpc || !els.rpcUrl.value.trim()) {
+        els.rpcUrl.value = network.defaultRpc;
+      }
+      syncRpcPreset();
+      updateWalletState();
+    }
+
+    async function toggleNetworkMode() {
+      state.networkKey = state.networkKey === "polygon" ? "anubis" : "polygon";
+      syncNetworkQuery();
+      resetPageState();
+      setMain(`已切换到 ${currentNetwork().name} 模式。`, "good");
+      setAdvisor(`当前界面使用 ${currentNetwork().name} 网络，其他功能保持不变。`, "good", currentNetwork().name);
+      if (state.walletProvider || state.wallets.length || window.ethereum) {
+        try {
+          await switchToCurrentNetwork();
+          const suffix = state.account ? "钱包网络也已同步。" : "连接钱包前已先请求切换钱包网络。";
+          setMain(`已切换到 ${currentNetwork().name}，${suffix}`, "good");
+        } catch (error) {
+          const suffix = state.account ? "钱包切链失败" : "钱包预切链失败，连接钱包后会再次请求切链";
+          setMain(`界面已切换到 ${currentNetwork().name}，${suffix}：${error.message}`, "bad");
+        }
+      }
+    }
+
+    function requireEthers() {
+      if (window.ethers) return window.ethers;
+      if (window.ethersLoadFailed) throw new Error("ethers.js 加载失败，请确认浏览器可以访问 CDN。");
+      throw new Error("ethers.js 尚未加载完成，请稍后重试。");
+    }
+
+    function provider() {
+      const { ethers } = window;
+      const rpc = normalizedRpcUrl();
+      if (!rpc) throw new Error(`请填写 ${currentNetwork().name} RPC。`);
+      state.rpcProvider = new ethers.JsonRpcProvider(rpc);
+      return state.rpcProvider;
+    }
+
+    function selectedWalletProvider() {
+      if (state.walletProvider) return state.walletProvider;
+      const selected = state.wallets.find((wallet) => wallet.id === els.walletSelect.value);
+      if (selected) {
+        state.walletProvider = selected.provider;
+        return selected.provider;
+      }
+      if (window.ethereum) {
+        state.walletProvider = window.ethereum;
+        return window.ethereum;
+      }
+      throw new Error("未检测到浏览器钱包。");
+    }
+
+    function walletLabel(provider, fallback = "Injected Wallet") {
+      if (provider?.isOkxWallet || provider?.isOKExWallet) return "OKX Wallet";
+      if (provider?.isTokenPocket || provider?.isTpWallet || provider?.isTP) return "TokenPocket";
+      if (provider?.isBinance || provider?.isBinanceWallet) return "Binance Wallet";
+      if (provider?.isBitKeep || provider?.isBitget || provider?.isBitgetWallet) return "Bitget Wallet";
+      if (provider?.isMetaMask) return "MetaMask";
+      if (provider?.isRabby) return "Rabby";
+      if (provider?.isCoinbaseWallet) return "Coinbase Wallet";
+      if (provider?.isTrust) return "Trust Wallet";
+      return fallback;
+    }
+
+    function normalizedWalletName(name) {
+      return String(name || "Injected Wallet").trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function isOkxWallet(wallet) {
+      return wallet?.provider?.isOkxWallet
+        || wallet?.provider?.isOKExWallet
+        || normalizedWalletName(wallet?.name).includes("okx")
+        || normalizedWalletName(wallet?.name).includes("okex");
+    }
+
+    function walletPriority(wallet) {
+      const name = normalizedWalletName(wallet?.name);
+      if (isOkxWallet(wallet)) return 0;
+      if (wallet?.provider?.isTokenPocket || wallet?.provider?.isTpWallet || name.includes("tokenpocket")) return 1;
+      if (wallet?.provider?.isBinance || wallet?.provider?.isBinanceWallet || name.includes("binance")) return 2;
+      if (wallet?.provider?.isBitKeep || wallet?.provider?.isBitget || name.includes("bitget") || name.includes("bitkeep")) return 3;
+      return 10;
+    }
+
+    function preferredWalletId() {
+      return [...state.wallets].sort((a, b) => walletPriority(a) - walletPriority(b))[0]?.id || "";
+    }
+
+    function addWalletProvider(id, name, provider) {
+      const displayName = name || walletLabel(provider);
+      const normalizedName = normalizedWalletName(displayName);
+      if (!provider) return;
+      if (state.wallets.some((wallet) => wallet.provider === provider || wallet.id === id || wallet.normalizedName === normalizedName)) return;
+      state.wallets.push({ id, name: displayName, normalizedName, provider });
+      renderWalletOptions();
+    }
+
+    function renderWalletOptions() {
+      if (!state.wallets.length) {
+        els.walletSelect.innerHTML = `<option value="">未检测到钱包</option>`;
+        return;
+      }
+      state.wallets.sort((a, b) => walletPriority(a) - walletPriority(b));
+      const current = state.walletManuallySelected ? els.walletSelect.value : preferredWalletId();
+      els.walletSelect.innerHTML = state.wallets.map((wallet) => (
+        `<option value="${esc(wallet.id)}">${esc(wallet.name)}</option>`
+      )).join("");
+      els.walletSelect.value = state.wallets.some((wallet) => wallet.id === current) ? current : preferredWalletId();
+      state.walletProvider = state.wallets.find((wallet) => wallet.id === els.walletSelect.value)?.provider || null;
+    }
+
+    function discoverWallets() {
+      window.addEventListener("eip6963:announceProvider", (event) => {
+        const detail = event.detail || {};
+        addWalletProvider(detail.info?.uuid || detail.info?.rdns || `wallet-${state.wallets.length}`, detail.info?.name || "Injected Wallet", detail.provider);
+      });
+      window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+      const eth = window.ethereum;
+      if (eth?.providers?.length) {
+        eth.providers.forEach((item, index) => addWalletProvider(`legacy-${index}`, walletLabel(item, `Wallet ${index + 1}`), item));
+      } else if (eth) {
+        addWalletProvider("legacy-window-ethereum", walletLabel(eth), eth);
+      }
+      if (window.okxwallet?.ethereum) {
+        addWalletProvider("okx-window-ethereum", "OKX Wallet", window.okxwallet.ethereum);
+      } else if (window.okxwallet?.request) {
+        addWalletProvider("okx-window", "OKX Wallet", window.okxwallet);
+      }
+      if (window.tokenpocket?.ethereum) {
+        addWalletProvider("tokenpocket-window-ethereum", "TokenPocket", window.tokenpocket.ethereum);
+      } else if (window.tokenpocket?.request) {
+        addWalletProvider("tokenpocket-window", "TokenPocket", window.tokenpocket);
+      }
+      if (window.BinanceChain?.request) {
+        addWalletProvider("binance-chain", "Binance Wallet", window.BinanceChain);
+      }
+      if (window.bitkeep?.ethereum) {
+        addWalletProvider("bitkeep-window-ethereum", "Bitget Wallet", window.bitkeep.ethereum);
+      } else if (window.bitkeep?.request) {
+        addWalletProvider("bitkeep-window", "Bitget Wallet", window.bitkeep);
+      }
+      if (window.bitgetWallet?.ethereum) {
+        addWalletProvider("bitget-window-ethereum", "Bitget Wallet", window.bitgetWallet.ethereum);
+      } else if (window.bitgetWallet?.request) {
+        addWalletProvider("bitget-window", "Bitget Wallet", window.bitgetWallet);
+      }
+      renderWalletOptions();
+    }
+
+    function cleanRpcUrl(value) {
+      return String(value || "").trim().replace(/\/+$/, "");
+    }
+
+    function normalizedRpcUrl({ allowEmpty = false } = {}) {
+      const current = cleanRpcUrl(els.rpcUrl.value);
+      const network = currentNetwork();
+      const deprecated = new Set([...(network.deprecatedRpcs || []), ...DEPRECATED_RPCS]);
+      if (!current && allowEmpty) {
+        syncRpcPreset();
+        return "";
+      }
+      if (!current || deprecated.has(current)) {
+        els.rpcUrl.value = network.defaultRpc;
+        els.rpcPreset.value = network.defaultRpc;
+        return network.defaultRpc;
+      }
+      syncRpcPreset();
+      return els.rpcUrl.value.trim();
+    }
+
+    function syncRpcPreset() {
+      const current = cleanRpcUrl(els.rpcUrl.value);
+      const option = [...els.rpcPreset.options].find((item) => cleanRpcUrl(item.value) === current);
+      els.rpcPreset.value = option ? option.value : "custom";
+    }
+
+    function selectRpcPreset() {
+      if (els.rpcPreset.value !== "custom") {
+        els.rpcUrl.value = els.rpcPreset.value;
+      } else {
+        els.rpcUrl.value = "";
+      }
+      normalizedRpcUrl({ allowEmpty: els.rpcPreset.value === "custom" });
+      els.rpcDot.classList.remove("ok", "bad");
+      els.rpcState.textContent = `${currentNetwork().name} RPC 待连接`;
+      setMain(`已切换 ${currentNetwork().name} RPC：${els.rpcUrl.value}`, "good");
+    }
+
+    function validateAddress(value) {
+      const { ethers } = requireEthers();
+      if (!ethers.isAddress(value)) throw new Error("地址格式无效。");
+      return ethers.getAddress(value);
+    }
+
+    function validateHash(value) {
+      const hash = value.trim();
+      if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) throw new Error("交易哈希格式无效。");
+      return hash;
+    }
+
+    function formatEtherValue(value) {
+      const { ethers } = requireEthers();
+      return `${ethers.formatEther(value || 0n)} ${currentNetwork().nativeCurrency.symbol}`;
+    }
+
+    function normalizeValue(value) {
+      if (typeof value === "bigint") return value.toString();
+      if (Array.isArray(value)) return value.map(normalizeValue);
+      if (value && typeof value === "object") {
+        if (value.constructor && value.constructor.name === "Result") {
+          return Array.from(value).map(normalizeValue);
+        }
+        const entries = Object.entries(value).filter(([key]) => Number.isNaN(Number(key)));
+        if (entries.length === 0 && typeof value.toString === "function") return value.toString();
+        return Object.fromEntries(entries.map(([key, val]) => [key, normalizeValue(val)]));
+      }
+      return value;
+    }
+
+    function stringifyValue(value) {
+      if (typeof value === "string") return value;
+      return JSON.stringify(normalizeValue(value), null, 2);
+    }
+
+    function short(value) {
+      if (!value || value.length < 18) return value || "-";
+      return `${value.slice(0, 10)}...${value.slice(-8)}`;
+    }
+
+    function txDetailRows(rows) {
+      els.txDetails.innerHTML = rows.map(([key, value]) => (
+        `<div class="key">${esc(key)}</div><div>${value}</div>`
+      )).join("");
+    }
+
+    function resetTxDetails() {
+      txDetailRows([
+        ["状态", "等待交易哈希"],
+        ["交互地址", "-"],
+        ["From", "-"],
+        ["Value", "-"],
+        ["Block", "-"],
+        ["Selector", "-"]
+      ]);
+    }
+
+    function resetPageState() {
+      state.rpcProvider = null;
+      state.tx = null;
+      state.receipt = null;
+      state.target = "";
+      state.abi = null;
+      state.abiSource = "";
+      state.abiIsRouterMinimal = false;
+      state.iface = null;
+      state.fragments = [];
+      state.account = "";
+      state.chainId = "";
+      state.decodedSignature = "";
+      state.decodedArgs = null;
+      state.swapDiagnosis = null;
+
+      els.txHash.value = DEFAULT_TX_HASH;
+      renderNetworkUi({ resetRpc: true });
+      els.targetAddress.value = "";
+      els.scanApiKey.value = "";
+      els.abiInput.value = "";
+      els.rawValue.value = "";
+      els.rawGas.value = "";
+      els.rawData.value = "";
+      els.rawResult.textContent = "-";
+      els.simpleAmount.value = "";
+      els.simpleSlippage.value = "1000";
+      els.customSlippage.value = "";
+      els.customSlippage.hidden = true;
+      els.simpleSwapResult.textContent = "-";
+      els.approvalToken.value = "";
+      els.approvalSpender.value = "";
+      els.approvalAmount.value = "";
+      els.approvalDecimals.value = "";
+      els.approvalResult.textContent = "-";
+      els.approvalState.textContent = "待检查";
+      els.signatureHints.innerHTML = "";
+      els.lastResult.textContent = "-";
+      els.decodeState.textContent = "未解码";
+      els.decodeResult.textContent = "-";
+      els.abiCount.textContent = "0 functions";
+      els.scanTxLink.hidden = true;
+      els.scanTxLink.href = "#";
+      els.rpcDot.classList.remove("ok", "bad");
+      els.rpcState.textContent = `${currentNetwork().name} RPC 待连接`;
+      resetTxDetails();
+      setStatus(els.targetStatus, "等待地址");
+      setStatus(els.abiStatus, "等待 ABI");
+      setAdvisor("等待交易哈希", "", "待识别");
+      renderFunctions();
+      updateWalletState();
+    }
+
+    async function loadTransaction() {
+      try {
+        requireEthers();
+        setMain("正在解析交易...", "");
+        els.loadTxBtn.disabled = true;
+        const hash = validateHash(els.txHash.value);
+        const rpc = provider();
+        const [tx, receipt] = await Promise.all([
+          rpc.getTransaction(hash),
+          rpc.getTransactionReceipt(hash)
+        ]);
+
+        if (!tx) throw new Error(`没有在 ${currentNetwork().name} RPC 上找到这笔交易。`);
+
+        state.tx = tx;
+        state.receipt = receipt;
+        const target = tx.to || receipt?.contractAddress || "";
+        if (target) {
+          state.target = validateAddress(target);
+          els.targetAddress.value = state.target;
+          await checkTargetCode(false);
+        }
+
+        const selector = tx.data && tx.data !== "0x" ? tx.data.slice(0, 10) : "无";
+        const status = receipt ? (receipt.status === 1 ? "成功" : "失败") : "Pending";
+        const block = receipt?.blockNumber ? String(receipt.blockNumber) : "-";
+        const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : "-";
+        txDetailRows([
+          ["状态", esc(status)],
+          ["交互地址", target ? `<span class="mono">${esc(target)}</span>` : "-"],
+          ["From", `<span class="mono">${esc(tx.from)}</span>`],
+          ["Value", esc(formatEtherValue(tx.value))],
+          ["Block", esc(block)],
+          ["Gas used", esc(gasUsed)],
+          ["Selector", `<span class="mono">${esc(selector)}</span>`]
+        ]);
+
+        els.rawData.value = tx.data || "0x";
+        els.rawValue.value = tx.value ? window.ethers.formatEther(tx.value) : "0";
+        els.scanTxLink.href = explorerTxUrl(hash);
+        els.scanTxLink.hidden = false;
+        els.rpcDot.classList.add("ok");
+        els.rpcState.textContent = "RPC 已连接";
+        setMain("交易已解析。", "good");
+        const nextMessage = tx.data && tx.data !== "0x"
+          ? `已识别 selector ${selector}，可以继续智能识别 ABI 和函数。`
+          : "这笔交易没有 calldata，通常是普通转账或无参数调用。";
+        setAdvisor(nextMessage, tx.data && tx.data !== "0x" ? "" : "warn", "已解析");
+        decodeTransaction();
+      } catch (error) {
+        setMain(error.message, "bad");
+        setAdvisor(error.message, "bad", "解析失败");
+        setLast({ error: error.message });
+      } finally {
+        els.loadTxBtn.disabled = false;
+      }
+    }
+
+    async function applyTarget() {
+      try {
+        state.target = validateAddress(els.targetAddress.value.trim());
+        els.targetAddress.value = state.target;
+        setStatus(els.targetStatus, `已应用 ${state.target}`, "good");
+        await checkTargetCode(false);
+      } catch (error) {
+        setStatus(els.targetStatus, error.message, "bad");
+      }
+    }
+
+    async function checkTargetCode(report = true) {
+      try {
+        requireEthers();
+        const address = validateAddress(els.targetAddress.value.trim() || state.target);
+        const code = await provider().getCode(address);
+        state.target = address;
+        if (code && code !== "0x") {
+          setStatus(els.targetStatus, `合约地址，bytecode ${Math.max(0, (code.length - 2) / 2)} bytes`, "good");
+        } else {
+          setStatus(els.targetStatus, "外部账户地址，ABI 函数不可用；Raw calldata 仍可发送。", "warn");
+        }
+        if (report) setMain("地址检查完成。", "good");
+      } catch (error) {
+        setStatus(els.targetStatus, error.message, "bad");
+        if (report) setMain(error.message, "bad");
+      }
+    }
+
+    function normalizeAbiPayload(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (payload && Array.isArray(payload.abi)) return payload.abi;
+      if (payload && payload.output && Array.isArray(payload.output.abi)) return payload.output.abi;
+      throw new Error("ABI JSON 格式无效。");
+    }
+
+    function useAbiPayload(payload, sourceLabel) {
+      const { ethers } = requireEthers();
+      const abi = normalizeAbiPayload(payload);
+      const iface = new ethers.Interface(abi);
+      const fragments = iface.fragments.filter((fragment) => fragment.type === "function");
+      state.abi = abi;
+      state.abiSource = sourceLabel;
+      state.abiIsRouterMinimal = false;
+      state.iface = iface;
+      state.fragments = fragments;
+      els.abiInput.value = JSON.stringify(abi, null, 2);
+      els.abiCount.textContent = `${fragments.length} functions`;
+      setStatus(els.abiStatus, `${sourceLabel} 已应用。`, "good");
+      renderFunctions();
+      decodeTransaction();
+    }
+
+    async function loadVerifiedAbi() {
+      try {
+        requireEthers();
+        if (!state.target) await applyTarget();
+        const address = validateAddress(state.target || els.targetAddress.value.trim());
+        setStatus(els.abiStatus, "正在载入 ABI...", "");
+        els.loadVerifiedAbiBtn.disabled = true;
+        const key = els.scanApiKey.value.trim();
+        const network = currentNetwork();
+        const urls = [
+          {
+            label: "Sourcify full match",
+            url: `https://repo.sourcify.dev/contracts/full_match/${network.sourcifyChainId}/${address}/metadata.json`,
+            parse: async (response) => {
+              if (!response.ok) throw new Error("no full match");
+              const data = await response.json();
+              return data.output?.abi;
+            }
+          },
+          {
+            label: "Sourcify partial match",
+            url: `https://repo.sourcify.dev/contracts/partial_match/${network.sourcifyChainId}/${address}/metadata.json`,
+            parse: async (response) => {
+              if (!response.ok) throw new Error("no partial match");
+              const data = await response.json();
+              return data.output?.abi;
+            }
+          },
+          {
+            label: "Etherscan v2",
+            url: key && network.etherscanChainId ? `https://api.etherscan.io/v2/api?chainid=${network.etherscanChainId}&module=contract&action=getabi&address=${address}&apikey=${encodeURIComponent(key)}` : "",
+            parse: async (response) => {
+              const data = await response.json();
+              if (data.status !== "1") throw new Error(data.result || data.message || "Etherscan v2 failed");
+              return JSON.parse(data.result);
+            }
+          },
+          {
+            label: network.explorerName,
+            url: network.scanApiUrl ? `${network.scanApiUrl}?module=contract&action=getabi&address=${address}${key ? `&apikey=${encodeURIComponent(key)}` : ""}` : "",
+            parse: async (response) => {
+              const data = await response.json();
+              if (data.status !== "1") throw new Error(data.result || data.message || `${network.explorerName} failed`);
+              return JSON.parse(data.result);
+            }
+          }
+        ].filter((item) => item.url);
+
+        const errors = [];
+        for (const item of urls) {
+          try {
+            const response = await fetch(item.url);
+            const abi = await item.parse(response);
+            if (Array.isArray(abi)) {
+              useAbiPayload(abi, item.label);
+              setMain("ABI 已载入。", "good");
+              return true;
+            }
+            throw new Error("ABI 为空");
+          } catch (error) {
+            errors.push(`${item.label}: ${error.message}`);
+          }
+        }
+
+        throw new Error(`未找到已验证 ABI。${errors.join(" | ")}`);
+      } catch (error) {
+        setStatus(els.abiStatus, error.message, "bad");
+        setMain(error.message, "bad");
+        return false;
+      } finally {
+        els.loadVerifiedAbiBtn.disabled = false;
+      }
+    }
+
+    function clearAbi() {
+      state.abi = null;
+      state.abiSource = "";
+      state.abiIsRouterMinimal = false;
+      state.iface = null;
+      state.fragments = [];
+      state.decodedSignature = "";
+      state.decodedArgs = null;
+      els.abiInput.value = "";
+      els.abiCount.textContent = "0 functions";
+      els.decodeState.textContent = "未解码";
+      els.decodeResult.textContent = "-";
+      els.signatureHints.innerHTML = "";
+      setAdvisor("ABI 已清空。", "warn", "待识别");
+      setStatus(els.abiStatus, "ABI 已清空。", "warn");
+      renderFunctions();
+    }
+
+    function usePastedAbi() {
+      try {
+        const text = els.abiInput.value.trim();
+        if (!text) throw new Error("请粘贴 ABI JSON。");
+        useAbiPayload(JSON.parse(text), "手动 ABI");
+        setMain("ABI 已应用。", "good");
+      } catch (error) {
+        setStatus(els.abiStatus, error.message, "bad");
+        setMain(error.message, "bad");
+      }
+    }
+
+    function functionRenderKey(fragments = state.fragments, decodedSignature = state.decodedSignature) {
+      return `${decodedSignature}|${fragments.map((fragment) => `${fragment.format("sighash")}:${fragment.stateMutability}`).join(";")}`;
+    }
+
+    function renderFunctionHtml(fragments, decodedSignature = state.decodedSignature) {
+      const previousFragments = state.fragments;
+      const previousDecodedSignature = state.decodedSignature;
+      state.fragments = fragments;
+      state.decodedSignature = decodedSignature;
+      try {
+        const reads = fragments.filter((fragment) => ["view", "pure"].includes(fragment.stateMutability));
+        const writes = fragments.filter((fragment) => !["view", "pure"].includes(fragment.stateMutability));
+        return {
+          read: reads.length ? reads.map((fragment) => renderFunction(fragment, "read")).join("") : `<div class="empty">无读取函数</div>`,
+          write: writes.length ? writes.map((fragment) => renderFunction(fragment, "write")).join("") : `<div class="empty">无写入函数</div>`
+        };
+      } finally {
+        state.fragments = previousFragments;
+        state.decodedSignature = previousDecodedSignature;
+      }
+    }
+
+    function cacheFunctionRender(fragments, decodedSignature = "") {
+      const key = functionRenderKey(fragments, decodedSignature);
+      if (!state.functionRenderCache.has(key)) {
+        state.functionRenderCache.set(key, renderFunctionHtml(fragments, decodedSignature));
+      }
+      return state.functionRenderCache.get(key);
+    }
+
+    function renderFunctions() {
+      const key = functionRenderKey();
+      const cached = state.functionRenderCache.get(key) || cacheFunctionRender(state.fragments, state.decodedSignature);
+      els.readFunctions.innerHTML = cached.read;
+      els.writeFunctions.innerHTML = cached.write;
+    }
+
+    function renderFunction(fragment, mode) {
+      const sig = fragment.format("sighash");
+      const isOrigin = state.decodedSignature === sig;
+      const params = fragment.inputs.map((param, index) => {
+        const name = param.name || `arg${index + 1}`;
+        const typeLabel = param.format ? param.format("sighash") : param.type;
+        const placeholder = typeLabel.includes("[") || typeLabel.startsWith("tuple") ? "JSON" : "";
+        return `
+          <div class="field">
+            <label class="param-label" for="${esc(mode)}-${esc(sig)}-${index}">
+              <span>${esc(name)}</span>
+              <span>${esc(typeLabel)}</span>
+            </label>
+            <input id="${esc(mode)}-${esc(sig)}-${index}" data-param-index="${index}" spellcheck="false" placeholder="${esc(placeholder)}" />
+          </div>
+        `;
+      }).join("");
+
+      const payableInput = mode === "write" && fragment.stateMutability === "payable" ? `
+        <div class="field">
+          <label for="${esc(mode)}-${esc(sig)}-value">${esc(currentNetwork().nativeCurrency.symbol)}</label>
+          <input id="${esc(mode)}-${esc(sig)}-value" data-payable-value inputmode="decimal" placeholder="0" />
+        </div>
+      ` : "";
+
+      const actions = mode === "read"
+        ? `<button class="primary" data-read="${esc(sig)}">读取</button>`
+        : `<button class="ghost" data-estimate="${esc(sig)}">估算</button><button class="danger" data-write="${esc(sig)}">发送</button>`;
+
+      return `
+        <div class="function-item ${isOrigin ? "original-call" : ""}" data-function="${esc(sig)}">
+          <div class="function-top">
+            <div class="function-name">${esc(sig)}</div>
+            <div class="row">
+              ${isOrigin ? `<div class="function-kind origin">原交易</div>` : ""}
+              <div class="function-kind ${mode === "write" ? "write" : ""}">${mode === "read" ? "read" : fragment.stateMutability}</div>
+            </div>
+          </div>
+          <div class="function-body">
+            <div class="params">${params || `<div class="empty">无参数</div>`}${payableInput}</div>
+            <div class="row">${actions}</div>
+            <div class="result" data-result-for="${esc(sig)}">-</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function parseParamValue(raw, param) {
+      const value = raw.trim();
+      const type = param.format ? param.format("sighash") : param.type;
+      if (!value && type !== "string") throw new Error(`${param.name || type} 不能为空。`);
+      if (type === "string") return raw;
+      if (type === "bool") {
+        if (/^(true|1)$/i.test(value)) return true;
+        if (/^(false|0)$/i.test(value)) return false;
+        throw new Error(`${param.name || type} 需要 bool。`);
+      }
+      if (/^u?int/.test(type)) return value;
+      if (type === "address") return validateAddress(value);
+      if (type.startsWith("bytes")) return value;
+      if (type.includes("[") || type.startsWith("tuple") || type.includes("(")) return JSON.parse(value);
+      return value;
+    }
+
+    function functionContainer(signature) {
+      return document.querySelector(`.function-item[data-function="${CSS.escape(signature)}"]`);
+    }
+
+    function collectArgs(signature) {
+      const fragment = state.iface.getFunction(signature);
+      const container = functionContainer(signature);
+      const inputs = [...container.querySelectorAll("[data-param-index]")];
+      return fragment.inputs.map((param, index) => parseParamValue(inputs[index]?.value || "", param));
+    }
+
+    function resultBox(signature) {
+      return document.querySelector(`[data-result-for="${CSS.escape(signature)}"]`);
+    }
+
+    function valueForInput(value) {
+      const normalized = normalizeValue(value);
+      if (Array.isArray(normalized) || (normalized && typeof normalized === "object")) {
+        return JSON.stringify(normalized);
+      }
+      return String(normalized ?? "");
+    }
+
+    function showFunctionTab(signature) {
+      if (!state.iface) return;
+      const fragment = state.iface.getFunction(signature);
+      const isRead = ["view", "pure"].includes(fragment.stateMutability);
+      const tab = document.querySelector(`.tab[data-tab="${isRead ? "readPanel" : "writePanel"}"]`);
+      if (tab) activateTab(tab);
+    }
+
+    function jumpToFunctionCard(signature) {
+      showFunctionTab(signature);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => centerFunctionCard(signature, "smooth"));
+      });
+      setTimeout(() => centerFunctionCard(signature, "smooth"), 50);
+      setTimeout(() => centerFunctionCard(signature, "smooth"), 140);
+    }
+
+    function centerFunctionCard(signature, behavior = "smooth") {
+      const container = functionContainer(signature);
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const targetTop = window.scrollY + rect.top + (rect.height / 2) - (window.innerHeight / 2);
+      const maxTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      window.scrollTo({
+        top: Math.min(maxTop, Math.max(0, targetTop)),
+        behavior
+      });
+    }
+
+    function fillOriginalCallInputs(signature, parsed, { scroll = false } = {}) {
+      const container = functionContainer(signature);
+      if (!container) return;
+      const inputs = [...container.querySelectorAll("[data-param-index]")];
+      parsed.fragment.inputs.forEach((param, index) => {
+        if (inputs[index]) inputs[index].value = valueForInput(parsed.args[index]);
+      });
+      const payableInput = container.querySelector("[data-payable-value]");
+      if (payableInput && parsed.value && parsed.value > 0n) {
+        payableInput.value = window.ethers.formatEther(parsed.value);
+      }
+      const box = resultBox(signature);
+      if (box) box.textContent = "已填入原交易参数。发送前请先估算并确认。";
+      if (scroll) container.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function fillFunctionInputs(signature, values, payableValue = "") {
+      const container = functionContainer(signature);
+      if (!container) return;
+      const inputs = [...container.querySelectorAll("[data-param-index]")];
+      values.forEach((value, index) => {
+        if (inputs[index]) inputs[index].value = valueForInput(value);
+      });
+      const payableInput = container.querySelector("[data-payable-value]");
+      if (payableInput) payableInput.value = payableValue;
+      const box = resultBox(signature);
+      if (box) box.textContent = "已按输入数量自动配置参数。";
+    }
+
+    function smartDetectResult(parsed) {
+      const signature = parsed.fragment.format("sighash");
+      return {
+        "识别函数": signature,
+        "函数名称": parsed.name,
+        "参数": normalizeValue(parsed.args),
+        "下一步": "已填入对应函数参数；如需操作，可手动打开写入函数页查看。"
+      };
+    }
+
+    function ensureRouterAbi(functionName) {
+      try {
+        if (state.iface) state.iface.getFunction(functionName);
+      } catch (error) {
+        applyRouterMinimalAbi();
+      }
+      if (!state.iface) applyRouterMinimalAbi();
+    }
+
+    function applyRouterMinimalAbi() {
+      useAbiPayload(ROUTER_ABI, "Router 最小 ABI");
+      state.abiIsRouterMinimal = true;
+    }
+
+    function prewarmRouterFunctionCache() {
+      try {
+        const { ethers } = requireEthers();
+        const iface = new ethers.Interface(ROUTER_ABI);
+        const fragments = iface.fragments.filter((fragment) => fragment.type === "function");
+        cacheFunctionRender(fragments, "");
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function scheduleRouterPrewarm(attempt = 0) {
+      if (prewarmRouterFunctionCache()) return;
+      if (attempt < 30) {
+        setTimeout(() => scheduleRouterPrewarm(attempt + 1), 100);
+      }
+    }
+
+    function renderSignatureHints(selector, results) {
+      if (!results.length) {
+        els.signatureHints.innerHTML = `<div class="empty">没有找到 selector ${esc(selector)} 的公开签名候选</div>`;
+        return;
+      }
+      els.signatureHints.innerHTML = results.slice(0, 6).map((item) => `
+        <div class="hint-item">
+          <strong>${esc(item.text_signature)}</strong>
+          <span class="chip">${esc(selector)}</span>
+        </div>
+      `).join("");
+    }
+
+    async function lookupSelector() {
+      try {
+        if (!state.tx) await loadTransaction();
+        if (!state.tx?.data || state.tx.data === "0x") {
+          setAdvisor("这笔交易没有 calldata，无法查询函数签名。", "warn", "无 calldata");
+          return;
+        }
+        const selector = state.tx.data.slice(0, 10);
+        setAdvisor(`正在查询 ${selector} 的函数签名候选...`, "", "查询中");
+        els.lookupSelectorBtn.disabled = true;
+        const response = await fetch(`https://www.4byte.directory/api/v1/signatures/?hex_signature=${selector}`);
+        if (!response.ok) throw new Error(`4byte 查询失败：${response.status}`);
+        const data = await response.json();
+        const results = Array.isArray(data.results) ? data.results : [];
+        renderSignatureHints(selector, results);
+        setAdvisor(results.length ? "已找到函数签名候选；如果没有公开 ABI，只能把它当作参考。" : "没有找到公开函数签名候选。", results.length ? "good" : "warn", results.length ? "有候选" : "无候选");
+      } catch (error) {
+        setAdvisor(error.message, "bad", "查询失败");
+      } finally {
+        els.lookupSelectorBtn.disabled = false;
+      }
+    }
+
+    async function smartDetectCall() {
+      try {
+        requireEthers();
+        els.smartDetectBtn.disabled = true;
+        setAdvisor("正在识别交易调用...", "", "识别中");
+        els.signatureHints.innerHTML = "";
+        if (!state.tx) await loadTransaction();
+        if (!state.tx) throw new Error("请先解析交易哈希。");
+        if (!state.tx.data || state.tx.data === "0x") {
+          setAdvisor("这笔交易没有 calldata，不需要 ABI 解码。", "warn", "无 calldata");
+          els.simpleSwapResult.textContent = "这笔交易没有 calldata，不需要 ABI 解码。";
+          return;
+        }
+
+        if (!state.iface || state.abiIsRouterMinimal) {
+          const loaded = await loadVerifiedAbi();
+          if (!loaded) {
+            await lookupSelector();
+            els.simpleSwapResult.textContent = stringifyValue({
+              "识别结果": "未找到公开 ABI",
+              "selector": selectorFromData(state.tx.data),
+              "下一步": "请根据下方 selector 候选确认函数，或粘贴正确 ABI 后再次智能识别。"
+            });
+            setAdvisor("未找到公开 ABI；已改用函数签名候选。", "warn", "ABI 未找到");
+            return;
+          }
+        }
+
+        decodeTransaction();
+        if (state.decodedSignature) {
+          setAdvisor(`原交易调用的是 ${state.decodedSignature}，参数已填入对应函数卡片。`, "good", "已识别");
+          setMain("智能识别完成。", "good");
+        } else {
+          await lookupSelector();
+          setAdvisor("ABI 已载入，但没有匹配到原交易 calldata。", "warn", "需确认");
+          els.simpleSwapResult.textContent = "ABI 已载入，但没有匹配到原交易 calldata。";
+        }
+      } catch (error) {
+        els.simpleSwapResult.textContent = error.message;
+        setAdvisor(error.message, "bad", "识别失败");
+        setMain(error.message, "bad");
+      } finally {
+        els.smartDetectBtn.disabled = false;
+      }
+    }
+
+    function knownRouterInterface() {
+      const { ethers } = requireEthers();
+      return new ethers.Interface(ROUTER_ABI);
+    }
+
+    function currentCallData() {
+      const raw = els.rawData.value.trim();
+      return raw && raw !== "0x" ? raw : state.tx?.data || "";
+    }
+
+    function parseKnownRouterCall() {
+      const data = currentCallData();
+      if (!data || data === "0x") throw new Error("当前没有可诊断的 calldata。");
+      let parsed = null;
+      try {
+        parsed = knownRouterInterface().parseTransaction({ data });
+      } catch (error) {
+        throw new Error(unsupportedAggregatorMessage(data));
+      }
+      if (!parsed) throw new Error(unsupportedAggregatorMessage(data));
+      return parsed;
+    }
+
+    function tryParseRouterCallFromData(data) {
+      try {
+        if (!data || data === "0x") return null;
+        return knownRouterInterface().parseTransaction({ data });
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function requireCurrentWalletRecipientForRaw() {
+      const data = els.rawData.value.trim();
+      const parsed = tryParseRouterCallFromData(data);
+      if (!parsed) return;
+      const wallet = selectedWalletProvider();
+      const account = state.account || (await wallet.request?.({ method: "eth_accounts" }))?.[0] || "";
+      if (!account) return;
+      const need = routerTransferNeed(parsed);
+      if (!need.recipient) return;
+      const recipient = validateAddress(need.recipient);
+      const current = validateAddress(account);
+      if (recipient.toLowerCase() === current.toLowerCase()) return;
+      const message = `当前 Raw calldata 的输出接收地址是 ${recipient}，不是当前钱包 ${current}。请先在“输入数量”里填数量，然后点“按数量自动配置”或“配置并估算”。`;
+      els.rawResult.textContent = message;
+      setAdvisor(message, "bad", "旧 Raw 参数");
+      throw new Error(message);
+    }
+
+    function routerTransferNeed(parsed) {
+      const args = parsed.args;
+      if (parsed.name === "exactInputSingle") {
+        const params = args[0];
+        return {
+          routerKind: "v3",
+          name: parsed.name,
+          signature: parsed.fragment.format("sighash"),
+          amount: params.amountIn,
+          amountOutMin: params.amountOutMinimum,
+          amountLabel: "amountIn",
+          path: [params.tokenIn, params.tokenOut],
+          recipient: params.recipient,
+          v3Params: params
+        };
+      }
+      if (parsed.name === "exactInput") {
+        const params = args[0];
+        return {
+          routerKind: "v3",
+          name: parsed.name,
+          signature: parsed.fragment.format("sighash"),
+          amount: params.amountIn,
+          amountOutMin: params.amountOutMinimum,
+          amountLabel: "amountIn",
+          path: decodeV3PathTokens(params.path),
+          recipient: params.recipient,
+          v3Params: params
+        };
+      }
+      if (parsed.name.startsWith("swapExactETH")) {
+        return { routerKind: "v2", nativeInput: true, name: parsed.name, signature: parsed.fragment.format("sighash"), amountOutMin: args[0], path: Array.from(args[1]), recipient: args[2] };
+      }
+      if (parsed.name.startsWith("swapExactTokens")) {
+        return {
+          routerKind: "v2",
+          name: parsed.name,
+          signature: parsed.fragment.format("sighash"),
+          amount: args[0],
+          amountOutMin: args[1],
+          amountLabel: "amountIn",
+          path: Array.from(args[2]),
+          recipient: args[3]
+        };
+      }
+      if (parsed.name.startsWith("swapTokensForExact")) {
+        return {
+          routerKind: "v2",
+          name: parsed.name,
+          signature: parsed.fragment.format("sighash"),
+          amount: args[1],
+          amountOutMin: null,
+          amountLabel: "amountInMax",
+          path: Array.from(args[2]),
+          recipient: args[3]
+        };
+      }
+      throw new Error(`暂不支持诊断 ${parsed.name}。`);
+    }
+
+    function decodeV3PathTokens(pathValue) {
+      const hex = String(pathValue || "").replace(/^0x/i, "");
+      if (hex.length < 40) return [];
+      const tokens = [];
+      let offset = 0;
+      while (offset + 40 <= hex.length) {
+        tokens.push(`0x${hex.slice(offset, offset + 40)}`);
+        offset += 46;
+      }
+      return tokens;
+    }
+
+    function aggregatorNameFromText(text) {
+      const normalized = String(text || "").toLowerCase();
+      return AGGREGATOR_HINTS.find((item) => item.keys.some((key) => normalized.includes(key)))?.name || "";
+    }
+
+    function unsupportedAggregatorMessage(data = currentCallData()) {
+      const selector = data && data !== "0x" ? data.slice(0, 10) : "";
+      const targetName = aggregatorNameFromText(`${els.targetAddress.value} ${els.abiStatus.textContent} ${els.decodeResult.textContent}`);
+      const prefix = targetName ? `检测到这更像 ${targetName} 交易。` : "当前 calldata 不是已知的 V2/V3 直连 Router swap 函数。";
+      return `${prefix} 聚合器交易不能只改旧哈希里的数量，需要从对应聚合器报价接口重新生成 to/data/value。selector: ${selector || "无"}`;
+    }
+
+    async function safeTokenRead(contract, method, fallback) {
+      try {
+        return await contract[method]();
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function fmtUnits(value, decimals) {
+      const { ethers } = requireEthers();
+      try {
+        return ethers.formatUnits(value, decimals);
+      } catch (error) {
+        return value.toString();
+      }
+    }
+
+    function simpleSlippageBps() {
+      if (els.simpleSlippage.value === "custom") {
+        const text = els.customSlippage.value.trim();
+        const value = Number(text);
+        if (!text || !Number.isFinite(value) || value < 0 || value > 90) {
+          throw new Error("自定义滑点请输入 0 到 90 之间的百分比。");
+        }
+        return BigInt(Math.round(value * 100));
+      }
+      const value = BigInt(els.simpleSlippage.value || "1000");
+      if (value < 0n || value > 9000n) return 1000n;
+      return value;
+    }
+
+    function simpleSlippageLabel() {
+      return `${Number(simpleSlippageBps()) / 100}%`;
+    }
+
+    function syncCustomSlippageUi() {
+      els.customSlippage.hidden = els.simpleSlippage.value !== "custom";
+    }
+
+    function renderSwapDiagnosis(details) {
+      const amount = `${fmtUnits(details.amount, details.decimals)} ${details.symbol}`;
+      const balance = `${fmtUnits(details.balance, details.decimals)} ${details.symbol}`;
+      const allowance = `${fmtUnits(details.allowance, details.decimals)} ${details.symbol}`;
+      const balanceOk = details.balance >= details.amount;
+      const allowanceOk = details.allowance >= details.amount;
+      const recipientOk = details.recipient.toLowerCase() === details.account.toLowerCase();
+      const issueText = [
+        balanceOk ? "" : "输入代币余额不足",
+        allowanceOk ? "" : "对 Router 的授权不足",
+        recipientOk ? "" : "输出接收地址不是当前钱包"
+      ].filter(Boolean).join("；") || "余额和授权都够，失败可能来自代币限制、池子状态或参数。";
+
+      els.signatureHints.innerHTML = `
+        <div class="hint-item"><strong>函数</strong><span>${esc(details.name)}</span></div>
+        <div class="hint-item"><strong>输入代币</strong><span class="mono">${esc(details.token)}</span></div>
+        <div class="hint-item"><strong>Router</strong><span class="mono">${esc(details.router)}</span></div>
+        <div class="hint-item"><strong>输出接收</strong><span class="mono">${esc(details.recipient)} ${recipientOk ? "OK" : "不是当前钱包"}</span></div>
+        <div class="hint-item"><strong>需要数量</strong><span>${esc(amount)}</span></div>
+        <div class="hint-item"><strong>你的余额</strong><span>${esc(balance)} ${balanceOk ? "OK" : "不足"}</span></div>
+        <div class="hint-item"><strong>已授权</strong><span>${esc(allowance)} ${allowanceOk ? "OK" : "不足"}</span></div>
+        <div class="status-line ${balanceOk && allowanceOk ? "warn" : "bad"}">${esc(issueText)}</div>
+        ${allowanceOk ? "" : `<button class="primary" data-approve-input-token>授权本次金额</button>`}
+      `;
+    }
+
+    async function diagnoseSwapTransfer() {
+      try {
+        requireEthers();
+        if (!state.target) await applyTarget();
+        const router = validateAddress(state.target || els.targetAddress.value.trim());
+        const wallet = selectedWalletProvider();
+        const account = state.account || (await wallet.request?.({ method: "eth_accounts" }))?.[0] || "";
+        if (!account) throw new Error("请先连接钱包，才能检查你的余额和授权。");
+
+        els.diagnoseSwapBtn.disabled = true;
+        setAdvisor("正在检查输入代币余额和 Router 授权...", "", "检查中");
+        const parsed = parseKnownRouterCall();
+        const need = routerTransferNeed(parsed);
+        if (need.nativeInput) {
+          setAdvisor(`${need.name} 使用 ${currentNetwork().nativeCurrency.symbol} 作为输入，不需要 ERC20 授权；这个错误可能不是余额/授权导致。`, "warn", "无需授权");
+          return;
+        }
+
+        const token = validateAddress(need.path[0]);
+        const erc20 = new window.ethers.Contract(token, ERC20_ABI, provider());
+        const [symbolRaw, decimalsRaw, balance, allowance] = await Promise.all([
+          safeTokenRead(erc20, "symbol", "TOKEN"),
+          safeTokenRead(erc20, "decimals", 18),
+          erc20.balanceOf(account),
+          erc20.allowance(account, router)
+        ]);
+        const decimals = Number(decimalsRaw);
+        const details = {
+          name: need.name,
+          token,
+          router,
+          account,
+          amount: need.amount,
+          amountLabel: need.amountLabel,
+          recipient: validateAddress(need.recipient),
+          symbol: String(symbolRaw || "TOKEN"),
+          decimals: Number.isFinite(decimals) ? decimals : 18,
+          balance,
+          allowance
+        };
+        if (!els.simpleAmount.value.trim()) els.simpleAmount.value = fmtUnits(need.amount, details.decimals);
+        els.approvalToken.value = details.token;
+        els.approvalSpender.value = details.router;
+        els.approvalAmount.value = fmtUnits(details.amount, details.decimals);
+        els.approvalDecimals.value = String(details.decimals);
+        state.swapDiagnosis = details;
+        renderSwapDiagnosis(details);
+        const balanceOk = balance >= need.amount;
+        const allowanceOk = allowance >= need.amount;
+        els.approvalState.textContent = allowanceOk ? "已有授权" : "需授权";
+        els.approvalResult.textContent = stringifyValue({
+          "代币地址": details.token,
+          "授权对象": details.router,
+          "钱包地址": validateAddress(account),
+          "代币符号": details.symbol,
+          "代币精度": details.decimals,
+          "钱包余额": `${fmtUnits(details.balance, details.decimals)} ${details.symbol}`,
+          "当前授权额度": `${fmtUnits(details.allowance, details.decimals)} ${details.symbol}`,
+          "本次需要数量": `${fmtUnits(details.amount, details.decimals)} ${details.symbol}`,
+          "余额是否足够": balanceOk ? "足够" : "不足",
+          "授权是否足够": allowanceOk ? "足够" : "不足"
+        });
+
+        if (!balanceOk) {
+          setAdvisor("输入代币余额不足。换成持有该代币的钱包，或减少 amountIn。", "bad", "余额不足");
+        } else if (!allowanceOk) {
+          setAdvisor("输入代币授权不足。可以先授权本次金额，再重新估算。", "bad", "需授权");
+        } else if (details.recipient.toLowerCase() !== account.toLowerCase()) {
+          setAdvisor("余额和授权够，但输出接收地址不是当前钱包；发送前请把 to 参数改成你的钱包地址。", "warn", "接收地址不一致");
+        } else {
+          setAdvisor("余额和授权都够；如果仍失败，检查代币交易限制、池子流动性、滑点和 deadline。", "warn", "需排查");
+        }
+      } catch (error) {
+        setAdvisor(error.message, "bad", "检查失败");
+        els.signatureHints.innerHTML = `<div class="empty">${esc(error.message)}</div>`;
+      } finally {
+        els.diagnoseSwapBtn.disabled = false;
+      }
+    }
+
+    async function approveInputToken() {
+      try {
+        requireEthers();
+        const details = state.swapDiagnosis;
+        if (!details) throw new Error("请先检查余额/授权。");
+        if (!window.confirm(`确认授权 ${details.router} 使用 ${fmtUnits(details.amount, details.decimals)} ${details.symbol}？`)) return;
+        const signer = await signerOnCurrentNetwork();
+        const token = new window.ethers.Contract(details.token, ERC20_ABI, signer);
+        setAdvisor("正在提交授权交易...", "", "授权中");
+        const tx = await token.approve(details.router, details.amount);
+        const link = explorerTxUrl(tx.hash);
+        setLast({ approveTx: tx.hash, link });
+        setAdvisor("授权交易已提交。等待链上确认后再重新估算 swap。", "good", "已提交授权");
+        els.signatureHints.innerHTML += `<div class="hint-item"><strong>授权交易</strong><a href="${esc(link)}" target="_blank" rel="noopener">${esc(tx.hash)}</a></div>`;
+      } catch (error) {
+        setAdvisor(error.message, "bad", "授权失败");
+      }
+    }
+
+    async function approvalContext() {
+      requireEthers();
+      const token = validateAddress(els.approvalToken.value.trim());
+      const spender = validateAddress(els.approvalSpender.value.trim());
+      const wallet = selectedWalletProvider();
+      const account = state.account || (await wallet.request?.({ method: "eth_accounts" }))?.[0] || "";
+      if (!account) throw new Error("请先连接钱包。");
+      const readContract = new window.ethers.Contract(token, ERC20_ABI, provider());
+      const [symbolRaw, decimalsRaw] = await Promise.all([
+        safeTokenRead(readContract, "symbol", "TOKEN"),
+        safeTokenRead(readContract, "decimals", 18)
+      ]);
+      const explicitDecimals = els.approvalDecimals.value.trim();
+      const decimals = explicitDecimals ? Number(explicitDecimals) : Number(decimalsRaw);
+      if (!Number.isFinite(decimals) || decimals < 0 || decimals > 255) throw new Error("Token 精度无效。");
+      els.approvalDecimals.value = String(decimals);
+      return { token, spender, account: validateAddress(account), symbol: String(symbolRaw || "TOKEN"), decimals, readContract };
+    }
+
+    function approvalAmountRaw(decimals) {
+      const { ethers } = requireEthers();
+      const amount = els.approvalAmount.value.trim();
+      if (!amount || Number(amount) < 0) throw new Error("请填写授权数量。");
+      return ethers.parseUnits(amount, decimals);
+    }
+
+    async function checkApproval() {
+      try {
+        els.checkApprovalBtn.disabled = true;
+        els.approvalState.textContent = "检查中";
+        const ctx = await approvalContext();
+        const [balance, allowance] = await Promise.all([
+          ctx.readContract.balanceOf(ctx.account),
+          ctx.readContract.allowance(ctx.account, ctx.spender)
+        ]);
+        els.approvalResult.textContent = stringifyValue({
+          "代币地址": ctx.token,
+          "授权对象": ctx.spender,
+          "钱包地址": ctx.account,
+          "代币符号": ctx.symbol,
+          "代币精度": ctx.decimals,
+          "钱包余额": `${fmtUnits(balance, ctx.decimals)} ${ctx.symbol}`,
+          "当前授权额度": `${fmtUnits(allowance, ctx.decimals)} ${ctx.symbol}`,
+          "授权状态": allowance > 0n ? "已有授权" : "未授权"
+        });
+        els.approvalState.textContent = allowance > 0n ? "已有授权" : "未授权";
+      } catch (error) {
+        els.approvalResult.textContent = error.message;
+        els.approvalState.textContent = "检查失败";
+      } finally {
+        els.checkApprovalBtn.disabled = false;
+      }
+    }
+
+    async function approveTokenAmount() {
+      try {
+        els.approveTokenBtn.disabled = true;
+        const ctx = await approvalContext();
+        const amount = approvalAmountRaw(ctx.decimals);
+        if (!window.confirm(`确认授权 ${ctx.spender} 使用 ${fmtUnits(amount, ctx.decimals)} ${ctx.symbol}？`)) return;
+        const signer = await signerOnCurrentNetwork();
+        const token = new window.ethers.Contract(ctx.token, ERC20_ABI, signer);
+        els.approvalState.textContent = "授权中";
+        const tx = await token.approve(ctx.spender, amount);
+        const link = explorerTxUrl(tx.hash);
+        els.approvalResult.textContent = `授权交易已提交 ${tx.hash}\n${link}`;
+        els.approvalState.textContent = "已提交";
+        setLast({ approveTx: tx.hash, link });
+      } catch (error) {
+        els.approvalResult.textContent = error.message;
+        els.approvalState.textContent = "授权失败";
+      } finally {
+        els.approveTokenBtn.disabled = false;
+      }
+    }
+
+    async function revokeTokenApproval() {
+      try {
+        els.revokeTokenBtn.disabled = true;
+        const ctx = await approvalContext();
+        if (!window.confirm(`确认取消 ${ctx.spender} 对 ${ctx.symbol} 的授权？`)) return;
+        const signer = await signerOnCurrentNetwork();
+        const token = new window.ethers.Contract(ctx.token, ERC20_ABI, signer);
+        els.approvalState.textContent = "取消中";
+        const tx = await token.approve(ctx.spender, 0n);
+        const link = explorerTxUrl(tx.hash);
+        els.approvalResult.textContent = `取消授权交易已提交 ${tx.hash}\n${link}`;
+        els.approvalState.textContent = "已提交";
+        setLast({ revokeTx: tx.hash, link });
+      } catch (error) {
+        els.approvalResult.textContent = error.message;
+        els.approvalState.textContent = "取消失败";
+      } finally {
+        els.revokeTokenBtn.disabled = false;
+      }
+    }
+
+    async function fillApprovalFromSwap() {
+      try {
+        const parsed = parseKnownRouterCall();
+        const need = routerTransferNeed(parsed);
+        if (need.nativeInput) throw new Error(`这个 swap 使用 ${currentNetwork().nativeCurrency.symbol} 输入，不需要 ERC20 授权。`);
+        const token = validateAddress(need.path[0]);
+        const spender = validateAddress(state.target || els.targetAddress.value.trim());
+        const meta = await tokenMeta(token);
+        els.approvalToken.value = token;
+        els.approvalSpender.value = spender;
+        els.approvalAmount.value = fmtUnits(need.amount, meta.decimals);
+        els.approvalDecimals.value = String(meta.decimals);
+        els.approvalResult.textContent = `已填入当前 swap 的输入代币 ${meta.symbol} 和 Router。`;
+        els.approvalState.textContent = "已填入";
+      } catch (error) {
+        els.approvalResult.textContent = error.message;
+        els.approvalState.textContent = "填入失败";
+      }
+    }
+
+    function exactInputSwapName(need) {
+      if (need.routerKind === "v3") return need.name;
+      const originalName = need.name;
+      if (originalName.startsWith("swapExact")) return originalName;
+      if (originalName === "swapTokensForExactETH") return "swapExactTokensForETHSupportingFeeOnTransferTokens";
+      return "swapExactTokensForTokensSupportingFeeOnTransferTokens";
+    }
+
+    function hasParam(params, name) {
+      return Object.prototype.hasOwnProperty.call(params, name) || params[name] !== undefined;
+    }
+
+    function buildSwapArgs(need, amountIn, amountOutMin, path, account, deadline) {
+      if (need.routerKind === "v3" && need.name === "exactInputSingle") {
+        const params = need.v3Params;
+        const next = hasParam(params, "deadline")
+          ? [path[0], path[path.length - 1], params.fee, account, deadline, amountIn, amountOutMin, params.sqrtPriceLimitX96]
+          : [path[0], path[path.length - 1], params.fee, account, amountIn, amountOutMin, params.sqrtPriceLimitX96];
+        return [next];
+      }
+      if (need.routerKind === "v3" && need.name === "exactInput") {
+        const params = need.v3Params;
+        const next = hasParam(params, "deadline")
+          ? [params.path, account, deadline, amountIn, amountOutMin]
+          : [params.path, account, amountIn, amountOutMin];
+        return [next];
+      }
+      if (need.nativeInput) return [amountOutMin, path, account, deadline];
+      return [amountIn, amountOutMin, path, account, deadline];
+    }
+
+    async function tokenMeta(address) {
+      const erc20 = new window.ethers.Contract(address, ERC20_ABI, provider());
+      const [symbolRaw, decimalsRaw] = await Promise.all([
+        safeTokenRead(erc20, "symbol", "TOKEN"),
+        safeTokenRead(erc20, "decimals", 18)
+      ]);
+      const decimals = Number(decimalsRaw);
+      return {
+        symbol: String(symbolRaw || "TOKEN"),
+        decimals: Number.isFinite(decimals) ? decimals : 18
+      };
+    }
+
+    async function quotedAmountOutMin(router, path, amountIn, need) {
+      const routerContract = new window.ethers.Contract(router, ROUTER_ABI, provider());
+      try {
+        const amounts = await routerContract.getAmountsOut(amountIn, path);
+        const quotedOut = amounts[amounts.length - 1];
+        const slippageBps = simpleSlippageBps();
+        return {
+          amountOutMin: quotedOut * (10000n - slippageBps) / 10000n,
+          quotedOut,
+          source: `Router 报价，自动留 ${simpleSlippageLabel()} 滑点`
+        };
+      } catch (error) {
+        if (need.amount && need.amountOutMin && need.amount > 0n) {
+          const scaled = need.amountOutMin * amountIn / need.amount;
+          const slippageBps = simpleSlippageBps();
+          return {
+            amountOutMin: scaled * (10000n - slippageBps) / 10000n,
+            quotedOut: scaled,
+            source: `Router 报价失败，按原交易比例缩放并留 ${simpleSlippageLabel()} 滑点`
+          };
+        }
+        return { amountOutMin: 0n, quotedOut: 0n, source: "Router 报价失败，amountOutMin 设为 0" };
+      }
+    }
+
+    async function buildSimpleSwap({ estimate = false } = {}) {
+      try {
+        requireEthers();
+        const { ethers } = window;
+        const wallet = selectedWalletProvider();
+        const account = state.account || (await wallet.request?.({ method: "eth_accounts" }))?.[0] || "";
+        if (!account) throw new Error("请先连接钱包。");
+        if (!state.tx && els.txHash.value.trim()) await loadTransaction();
+        if (!state.target) await applyTarget();
+
+        const amountText = els.simpleAmount.value.trim();
+        if (!amountText || Number(amountText) <= 0) throw new Error("请填写输入数量。");
+
+        els.buildSimpleSwapBtn.disabled = true;
+        els.estimateSimpleSwapBtn.disabled = true;
+        setAdvisor("正在按输入数量自动配置交易参数...", "", "配置中");
+
+        const router = validateAddress(state.target || els.targetAddress.value.trim());
+        const parsed = parseKnownRouterCall();
+        const need = routerTransferNeed(parsed);
+        const functionName = exactInputSwapName(need);
+        const path = need.path.map(validateAddress);
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + SIMPLE_DEADLINE_SECONDS);
+        const isNativeInput = functionName.startsWith("swapExactETH");
+        const inputMeta = isNativeInput ? { symbol: currentNetwork().nativeCurrency.symbol, decimals: currentNetwork().nativeCurrency.decimals } : await tokenMeta(path[0]);
+        const amountIn = ethers.parseUnits(amountText, inputMeta.decimals);
+        const quote = await quotedAmountOutMin(router, path, amountIn, need);
+
+        const args = buildSwapArgs(need, amountIn, quote.amountOutMin, path, validateAddress(account), deadline);
+        const routerIface = knownRouterInterface();
+        const encodeSignature = need.routerKind === "v3" ? need.signature : functionName;
+        const data = routerIface.encodeFunctionData(encodeSignature, args);
+        const outputMeta = functionName.includes("ForETH")
+          ? { symbol: currentNetwork().nativeCurrency.symbol, decimals: currentNetwork().nativeCurrency.decimals }
+          : await tokenMeta(path[path.length - 1]);
+
+        state.target = router;
+        els.targetAddress.value = router;
+        els.rawData.value = data;
+        els.rawValue.value = isNativeInput ? ethers.formatEther(amountIn) : "0";
+
+        ensureRouterAbi(functionName);
+        const signature = need.routerKind === "v3" ? need.signature : state.iface.getFunction(functionName).format("sighash");
+        renderFunctions();
+        fillFunctionInputs(signature, args, isNativeInput ? ethers.formatEther(amountIn) : "");
+        if (estimate) {
+          showFunctionTab(signature);
+        } else {
+          jumpToFunctionCard(signature);
+        }
+
+        els.simpleSwapResult.textContent = stringifyValue({
+          "操作": estimate ? "自动配置并估算" : "只按输入数量自动配置",
+          "调用函数": functionName,
+          "输入数量": `${amountText} ${inputMeta.symbol}`,
+          "预估输出": `${fmtUnits(quote.quotedOut, outputMeta.decimals)} ${outputMeta.symbol}`,
+          "最少接收": `${fmtUnits(quote.amountOutMin, outputMeta.decimals)} ${outputMeta.symbol}`,
+          "滑点保护": simpleSlippageLabel(),
+          "接收地址": validateAddress(account),
+          "截止时间": Number(deadline),
+          "报价来源": quote.source
+        });
+        setAdvisor("已自动配置。接下来点检查余额/授权，确认通过后再估算。", "good", "已配置");
+
+        if (estimate) {
+          await diagnoseSwapTransfer();
+          await estimateRaw();
+        } else {
+          setTimeout(async () => {
+            await diagnoseSwapTransfer();
+            centerFunctionCard(signature, "smooth");
+          }, 160);
+        }
+      } catch (error) {
+        els.simpleSwapResult.textContent = error.message;
+        setAdvisor(error.message, "bad", "配置失败");
+      } finally {
+        els.buildSimpleSwapBtn.disabled = false;
+        els.estimateSimpleSwapBtn.disabled = false;
+      }
+    }
+
+    async function handleTransferFromFailure(error) {
+      const message = `${error?.reason || ""} ${error?.shortMessage || ""} ${error?.message || ""}`;
+      if (!message.includes("TRANSFER_FROM_FAILED")) return;
+      setAdvisor("Router 拉取输入代币失败，通常是余额不足或未授权。正在尝试检查。", "bad", "TransferFrom 失败");
+      await diagnoseSwapTransfer();
+    }
+
+    function handleInsufficientOutput(error) {
+      const message = `${error?.reason || ""} ${error?.shortMessage || ""} ${error?.message || ""}`;
+      if (!message.includes("INSUFFICIENT_OUTPUT_AMOUNT")) return false;
+      const tip = "最少接收数量 amountOutMin 太高。请把“滑点保护”调到 20%；如果仍失败，用 50% 只做估算测试，然后重新点“自动配置并估算”。";
+      setAdvisor(tip, "bad", "滑点太低");
+      els.simpleSwapResult.textContent = tip;
+      els.signatureHints.innerHTML = `<div class="status-line bad">${esc(tip)}</div>`;
+      return true;
+    }
+
+    async function readFunction(signature) {
+      try {
+        requireEthers();
+        const { ethers } = window;
+        if (!state.target) await applyTarget();
+        const args = collectArgs(signature);
+        const contract = new ethers.Contract(state.target, state.abi, provider());
+        const result = await contract.getFunction(signature)(...args);
+        resultBox(signature).textContent = stringifyValue(result);
+        setLast({ [signature]: normalizeValue(result) });
+        setMain("读取完成。", "good");
+      } catch (error) {
+        resultBox(signature).textContent = error.message;
+        setMain(error.message, "bad");
+        handleInsufficientOutput(error);
+        await handleTransferFromFailure(error);
+      }
+    }
+
+    async function estimateFunction(signature) {
+      try {
+        requireEthers();
+        const { ethers } = window;
+        const signer = await signerOnCurrentNetwork();
+        if (!state.target) await applyTarget();
+        const args = collectArgs(signature);
+        const fragment = state.iface.getFunction(signature);
+        const overrides = {};
+        const container = functionContainer(signature);
+        const payableValue = container.querySelector("[data-payable-value]")?.value.trim();
+        if (fragment.stateMutability === "payable" && payableValue) {
+          overrides.value = ethers.parseEther(payableValue);
+        }
+        const contract = new ethers.Contract(state.target, state.abi, signer);
+        const gas = await contract.getFunction(signature).estimateGas(...args, overrides);
+        resultBox(signature).textContent = `${gas.toString()} gas`;
+        setMain("估算完成。", "good");
+      } catch (error) {
+        resultBox(signature).textContent = error.message;
+        setMain(error.message, "bad");
+        handleInsufficientOutput(error);
+        await handleTransferFromFailure(error);
+      }
+    }
+
+    async function writeFunction(signature) {
+      try {
+        requireEthers();
+        const { ethers } = window;
+        const signer = await signerOnCurrentNetwork();
+        if (!state.target) await applyTarget();
+        const args = collectArgs(signature);
+        const fragment = state.iface.getFunction(signature);
+        const overrides = {};
+        const container = functionContainer(signature);
+        const payableValue = container.querySelector("[data-payable-value]")?.value.trim();
+        if (fragment.stateMutability === "payable" && payableValue) {
+          overrides.value = ethers.parseEther(payableValue);
+        }
+        if (!window.confirm(`确认发送到 ${state.target} 的链上交易？`)) return;
+        const contract = new ethers.Contract(state.target, state.abi, signer);
+        const tx = await contract.getFunction(signature)(...args, overrides);
+        const link = explorerTxUrl(tx.hash);
+        resultBox(signature).innerHTML = `已发送 ${esc(tx.hash)}\n${esc(link)}`;
+        setLast({ hash: tx.hash, link });
+        setMain("交易已提交。", "good");
+      } catch (error) {
+        resultBox(signature).textContent = error.message;
+        setMain(error.message, "bad");
+        handleInsufficientOutput(error);
+        await handleTransferFromFailure(error);
+      }
+    }
+
+    async function connectWallet() {
+      try {
+        requireEthers();
+        syncDappIdentity();
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        const wallet = selectedWalletProvider();
+        try {
+          await switchToCurrentNetwork();
+        } catch (error) {
+          // Some wallets require account permission before switching chains; retry after connecting.
+        }
+        const accounts = await wallet.request({ method: "eth_requestAccounts" });
+        state.account = accounts[0] || "";
+        const chainId = await wallet.request({ method: "eth_chainId" });
+        state.chainId = chainId;
+        bindSelectedWalletEvents();
+        if (state.account && chainId !== currentNetwork().chainId) {
+          await switchToCurrentNetwork();
+        }
+        updateWalletState();
+        setMain(`钱包已连接，并同步到 ${currentNetwork().name}。`, "good");
+      } catch (error) {
+        setMain(error.message, "bad");
+      }
+    }
+
+    async function disconnectWallet() {
+      try {
+        const wallet = state.walletProvider || selectedWalletProvider();
+        let revoked = false;
+        let revokeError = null;
+        if (wallet?.request) {
+          try {
+            await wallet.request({
+              method: "wallet_revokePermissions",
+              params: [{ eth_accounts: {} }]
+            });
+            revoked = true;
+          } catch (error) {
+            revokeError = error;
+          }
+        }
+        clearWalletConnection();
+        if (revoked) {
+          setMain("已断开网页和钱包插件的连接。再次连接时可重新选择账号。", "good");
+        } else {
+          const reason = revokeError?.message ? `（钱包未接受插件断开请求：${revokeError.message}）` : "";
+          setMain(`网页连接已清除。这个钱包可能不支持网页主动断开插件授权，请在钱包插件里手动断开。${reason}`, "warn");
+        }
+      } catch (error) {
+        setMain(error.message, "bad");
+      }
+    }
+
+    async function switchToCurrentNetwork() {
+      const network = currentNetwork();
+      const wallet = selectedWalletProvider();
+      try {
+        await wallet.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: network.chainId }]
+        });
+      } catch (error) {
+        if (error.code !== 4902) throw error;
+        await wallet.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: network.chainId,
+            chainName: network.chainName,
+            nativeCurrency: network.nativeCurrency,
+            rpcUrls: network.rpcPresets.map((item) => item.value),
+            blockExplorerUrls: [network.explorerBase]
+          }]
+        });
+      }
+      state.chainId = await wallet.request({ method: "eth_chainId" });
+      updateWalletState();
+    }
+
+    async function signerOnCurrentNetwork() {
+      const { ethers } = requireEthers();
+      const wallet = selectedWalletProvider();
+      if (!state.account) await connectWallet();
+      const chainId = await wallet.request({ method: "eth_chainId" });
+      if (chainId !== currentNetwork().chainId) await switchToCurrentNetwork();
+      const browserProvider = new ethers.BrowserProvider(wallet);
+      return browserProvider.getSigner();
+    }
+
+    function updateWalletState() {
+      if (!state.account) {
+        els.walletDot.classList.remove("ok", "bad");
+        els.walletState.textContent = "钱包未连接";
+        els.connectWalletBtn.textContent = "连接钱包";
+        els.disconnectWalletBtn.disabled = true;
+        return;
+      }
+      const onCurrentNetwork = state.chainId === currentNetwork().chainId;
+      els.walletDot.classList.toggle("ok", onCurrentNetwork);
+      els.walletDot.classList.toggle("bad", !onCurrentNetwork);
+      els.walletState.textContent = `${short(state.account)} ${onCurrentNetwork ? currentNetwork().name : `非 ${currentNetwork().name}`}`;
+      els.connectWalletBtn.textContent = short(state.account);
+      els.disconnectWalletBtn.disabled = false;
+    }
+
+    function clearWalletConnection() {
+      state.account = "";
+      state.chainId = "";
+      updateWalletState();
+    }
+
+    function bindSelectedWalletEvents() {
+      const wallet = state.walletProvider;
+      if (!wallet || BOUND_WALLETS.has(wallet)) return;
+      BOUND_WALLETS.add(wallet);
+      wallet.on?.("accountsChanged", (accounts) => {
+        if (!accounts?.[0]) {
+          clearWalletConnection();
+          setMain("钱包插件已断开，网页连接状态已同步清除。", "good");
+          return;
+        }
+        state.account = accounts[0];
+        updateWalletState();
+      });
+      wallet.on?.("chainChanged", (chainId) => {
+        state.chainId = chainId;
+        updateWalletState();
+      });
+    }
+
+    function txOverridesFromRaw() {
+      const { ethers } = requireEthers();
+      const data = els.rawData.value.trim() || "0x";
+      if (!/^0x([a-fA-F0-9]{2})*$/.test(data)) throw new Error("Calldata 必须是 hex。");
+      const tx = { to: validateAddress(state.target || els.targetAddress.value.trim()), data };
+      const value = els.rawValue.value.trim();
+      if (value) tx.value = ethers.parseEther(value);
+      const gas = els.rawGas.value.trim();
+      if (gas) tx.gasLimit = BigInt(gas);
+      return tx;
+    }
+
+    async function estimateRaw() {
+      try {
+        const signer = await signerOnCurrentNetwork();
+        if (!state.target) await applyTarget();
+        await requireCurrentWalletRecipientForRaw();
+        const tx = txOverridesFromRaw();
+        const gas = await signer.estimateGas(tx);
+        els.rawResult.textContent = `${gas.toString()} gas`;
+        setMain("Raw 估算完成。", "good");
+      } catch (error) {
+        els.rawResult.textContent = error.message;
+        setMain(error.message, "bad");
+        handleInsufficientOutput(error);
+        await handleTransferFromFailure(error);
+      }
+    }
+
+    async function sendRaw() {
+      try {
+        const signer = await signerOnCurrentNetwork();
+        if (!state.target) await applyTarget();
+        await requireCurrentWalletRecipientForRaw();
+        const tx = txOverridesFromRaw();
+        if (!window.confirm(`确认向 ${tx.to} 发送 Raw 交易？`)) return;
+        const response = await signer.sendTransaction(tx);
+        const link = explorerTxUrl(response.hash);
+        els.rawResult.textContent = `已发送 ${response.hash}\n${link}`;
+        setLast({ hash: response.hash, link });
+        setMain("Raw 交易已提交。", "good");
+      } catch (error) {
+        els.rawResult.textContent = error.message;
+        setMain(error.message, "bad");
+        handleInsufficientOutput(error);
+        await handleTransferFromFailure(error);
+      }
+    }
+
+    function decodeTransaction() {
+      if (!state.tx || !state.iface || !state.tx.data || state.tx.data === "0x") {
+        els.decodeState.textContent = state.iface ? "无 calldata" : "未解码";
+        els.decodeResult.textContent = "-";
+        state.decodedSignature = "";
+        state.decodedArgs = null;
+        return;
+      }
+      try {
+        const parsed = state.iface.parseTransaction({ data: state.tx.data, value: state.tx.value });
+        if (!parsed) throw new Error("ABI 不匹配。");
+        const signature = parsed.fragment.format("sighash");
+        state.decodedSignature = signature;
+        state.decodedArgs = parsed.args;
+        renderFunctions();
+        showFunctionTab(signature);
+        fillOriginalCallInputs(signature, parsed);
+        els.decodeState.textContent = signature;
+        els.decodeResult.textContent = stringifyValue({
+          name: parsed.name,
+          signature,
+          args: normalizeValue(parsed.args)
+        });
+        els.simpleSwapResult.textContent = stringifyValue(smartDetectResult(parsed));
+        setAdvisor(`原交易调用的是 ${signature}，参数已填入。`, "good", "已解码");
+      } catch (error) {
+        state.decodedSignature = "";
+        state.decodedArgs = null;
+        els.decodeState.textContent = "ABI 不匹配";
+        els.decodeResult.textContent = error.message;
+      }
+    }
+
+    async function copyTarget() {
+      try {
+        const address = validateAddress(state.target || els.targetAddress.value.trim());
+        await navigator.clipboard.writeText(address);
+        setStatus(els.targetStatus, "地址已复制。", "good");
+      } catch (error) {
+        setStatus(els.targetStatus, error.message, "bad");
+      }
+    }
+
+    function activateTab(button) {
+      document.querySelectorAll(".tab").forEach((tab) => tab.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
+      button.classList.add("active");
+      document.getElementById(button.dataset.tab).classList.add("active");
+    }
+
+    els.loadTxBtn.addEventListener("click", loadTransaction);
+    els.networkModeBtn.addEventListener("click", async () => {
+      els.networkModeBtn.disabled = true;
+      try {
+        await toggleNetworkMode();
+      } finally {
+        els.networkModeBtn.disabled = false;
+      }
+    });
+    els.rpcPreset.addEventListener("change", selectRpcPreset);
+    els.rpcUrl.addEventListener("change", () => {
+      normalizedRpcUrl();
+      els.rpcDot.classList.remove("ok", "bad");
+      els.rpcState.textContent = "RPC 待连接";
+    });
+    els.walletSelect.addEventListener("change", () => {
+      state.walletManuallySelected = true;
+      state.walletProvider = state.wallets.find((wallet) => wallet.id === els.walletSelect.value)?.provider || null;
+      state.account = "";
+      state.chainId = "";
+      bindSelectedWalletEvents();
+      updateWalletState();
+      setMain("已切换钱包入口，请重新连接钱包。", "warn");
+    });
+    els.applyTargetBtn.addEventListener("click", applyTarget);
+    els.checkCodeBtn.addEventListener("click", () => checkTargetCode(true));
+    els.copyTargetBtn.addEventListener("click", copyTarget);
+    els.loadVerifiedAbiBtn.addEventListener("click", loadVerifiedAbi);
+    els.smartDetectBtn.addEventListener("click", smartDetectCall);
+    els.lookupSelectorBtn.addEventListener("click", lookupSelector);
+    els.diagnoseSwapBtn.addEventListener("click", diagnoseSwapTransfer);
+    els.buildSimpleSwapBtn.addEventListener("click", () => buildSimpleSwap());
+    els.estimateSimpleSwapBtn.addEventListener("click", () => buildSimpleSwap({ estimate: true }));
+    els.fillApprovalFromSwapBtn.addEventListener("click", fillApprovalFromSwap);
+    els.checkApprovalBtn.addEventListener("click", checkApproval);
+    els.approveTokenBtn.addEventListener("click", approveTokenAmount);
+    els.revokeTokenBtn.addEventListener("click", revokeTokenApproval);
+    els.simpleSlippage.addEventListener("change", () => {
+      syncCustomSlippageUi();
+      if (els.simpleSlippage.value === "custom" && !els.customSlippage.value.trim()) {
+        setAdvisor("请输入自定义滑点百分比，然后重新点“自动配置并估算”。", "warn", "自定义滑点");
+        return;
+      }
+      setAdvisor(`滑点已改为 ${simpleSlippageLabel()}，请重新点“自动配置并估算”。`, "warn", "需重新配置");
+    });
+    els.customSlippage.addEventListener("input", () => {
+      if (els.simpleSlippage.value !== "custom") return;
+      try {
+        setAdvisor(`滑点已改为 ${simpleSlippageLabel()}，请重新点“自动配置并估算”。`, "warn", "需重新配置");
+      } catch (error) {
+        setAdvisor(error.message, "bad", "滑点无效");
+      }
+    });
+    els.clearAbiBtn.addEventListener("click", clearAbi);
+    els.useAbiBtn.addEventListener("click", usePastedAbi);
+    els.connectWalletBtn.addEventListener("click", connectWallet);
+    els.disconnectWalletBtn.addEventListener("click", disconnectWallet);
+    els.resetPageBtn.addEventListener("click", () => {
+      resetPageState();
+      discoverWallets();
+      bindSelectedWalletEvents();
+      normalizedRpcUrl();
+      setMain("已恢复默认状态。", "good");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    els.estimateRawBtn.addEventListener("click", estimateRaw);
+    els.sendRawBtn.addEventListener("click", sendRaw);
+    document.querySelectorAll(".tab").forEach((button) => button.addEventListener("click", () => activateTab(button)));
+    document.addEventListener("click", (event) => {
+      const read = event.target.closest("[data-read]");
+      const estimate = event.target.closest("[data-estimate]");
+      const write = event.target.closest("[data-write]");
+      const approveInput = event.target.closest("[data-approve-input-token]");
+      if (read) readFunction(read.dataset.read);
+      if (estimate) estimateFunction(estimate.dataset.estimate);
+      if (write) writeFunction(write.dataset.write);
+      if (approveInput) approveInputToken();
+    });
+    els.txHash.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") loadTransaction();
+    });
+
+    state.networkKey = requestedNetworkKey();
+    resetPageState();
+    discoverWallets();
+    bindSelectedWalletEvents();
+    normalizedRpcUrl();
+    scheduleRouterPrewarm();
+
+    window.addEventListener("pageshow", (event) => {
+      if (!event.persisted) return;
+      state.networkKey = requestedNetworkKey();
+      resetPageState();
+      discoverWallets();
+      bindSelectedWalletEvents();
+      normalizedRpcUrl();
+      scheduleRouterPrewarm();
+    });
+
+    const queryTx = new URLSearchParams(window.location.search).get("tx");
+    if (queryTx) {
+      els.txHash.value = queryTx;
+      loadTransaction();
+    }
+  </script>
+</body>
+</html>
